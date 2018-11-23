@@ -35,11 +35,12 @@ preprocess = transforms.Compose([
     ])
 
 # No transformation.
-#dataset = ImageFolder(root="/disk2/rdlc_data/train/", transform=ToTensor())
+#dataset = ImageFolder(root="/training-data/", transform=ToTensor())
 
 netname, batchsz = sys.argv[1], sys.argv[2]
 #netname, batchsz = 'densenet', 600
 
+# Training data in the format of https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder
 dataset = ImageFolder(root="train/", transform=preprocess)
 dataloader = DataLoader(dataset, batch_size=int(batchsz), shuffle=True, pin_memory=True)
 
