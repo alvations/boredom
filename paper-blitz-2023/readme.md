@@ -187,3 +187,7 @@ NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for eac
 - Stop Uploading Test Data in Plain Text: Practical Strategies for Mitigating Data Contamination by Evaluation Benchmarks 
 - NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark 
 ```
+
+**Time taken:** ~15 mins for the code and cluster and playing around the `min_community_size` and `threshold` and ~5 mins to just go through the clusters quickly, reshuffle some papers and put labels on them. Amazing!! Clustering did help with the categorization step of "paper-blitz"!!
+
+
