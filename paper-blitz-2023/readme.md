@@ -93,17 +93,14 @@ Then I got even lazier, why categorize when I can make a model do it for me and 
 
 From https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering/fast_clustering.py
 
-```
+```python
 from sentence_transformers import SentenceTransformer, util
 import os
 import csv
 import time
 
-
 # Model for computing sentence embeddings. We use one trained for similar questions detection
 model = SentenceTransformer('all-MiniLM-L6-v2')
-
-
 
 corpus_embeddings = model.encode(
     [t.lower() for t in titles], batch_size=15, 
