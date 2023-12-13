@@ -150,7 +150,7 @@ Stop Uploading Test Data in Plain Text: Practical Strategies for Mitigating Data
 NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark 
 ```
 
-## **Me:** Not bad, I get 3 groups automatically, let me see if I can refine the groups and add some categories title to them.
+**Talking to myself:** Not bad, I get 3 groups automatically, let me see if I can refine the groups and add some categories title to them.
 
 
 # Step 1b: Clean up the clusters and label them.
