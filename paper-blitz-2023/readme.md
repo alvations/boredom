@@ -227,3 +227,34 @@ Usefulness:
   - Good to know kind of paper, no particular resource created/provided...
 
 **Time taken:** 4 mins
+
+---
+
+### Can Large Language Models Be an Alternative to Human Evaluations?
+
+Problem: Can we just eliminate humans to evaluate models?
+
+Approach: This picture sums it up
+
+![image](https://github.com/alvations/boredom/assets/1050316/5cd6cee5-8a61-4d74-a5ed-0b96003ea70d)
+
+
+Results: 
+ - Use LLM to do eval cos humans disagree with each other models don't
+ - Use LLM cos they don't have prior knowledge or get primed by general sample / model behaviors
+ - Use LLM cos its cheaper, (**Me**: Okay @_@)
+
+Strength:
+ - This work needs to exists so that we can cite and use it to qualify us to try replacing humans (slowly)
+
+
+Weakness:
+ - Don't quite agree that humans get primed but not LLM, because
+     - we can randomized the data such that it's blind to the human evaluators
+     - we can also try priming LLM with longer context to see if they can get primed/tricked like humans (Good idea for a fun paper!!)
+
+Usefulness:
+ - Again, another good to know paper, no resource provided
+
+
+Time taken: 7 mins
