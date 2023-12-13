@@ -103,12 +103,90 @@ import time
 # Model for computing sentence embeddings. We use one trained for similar questions detection
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
+
+
 corpus_embeddings = model.encode(
-    titles, batch_size=15, 
+    [t.lower() for t in titles], batch_size=15, 
     show_progress_bar=True, convert_to_tensor=True)
 
 #Two parameters to tune:
-#min_cluster_size: Only consider cluster that have at least 25 elements
-#threshold: Consider sentence pairs with a cosine-similarity larger than threshold as similar
-clusters = util.community_detection(corpus_embeddings, min_community_size=2, threshold=0.75)
+#min_cluster_size: Only consider cluster that have at least 2 elements
+#threshold: Consider sentence pairs with a cosine-similarity larger than threshold of 0.5
+clusters = util.community_detection(corpus_embeddings, min_community_size=2, threshold=0.5)
+
+#Print for all clusters the top 3 and bottom 3 elements
+for i, cluster in enumerate(clusters):
+    for sentence_id in cluster:
+        print(titles[sentence_id])
+    print('-------')
+```
+
+[out]:
+
+```
+Are Human Explanations Always Helpful? Towards Objective Evaluation of Human Natural Language Explanations 
+Beyond Factuality: A Comprehensive Evaluation of Large Language Models as Knowledge Generators 
+ParroT: Translating during Chat using Large Language Models tuned with Human Translation and Feedback 
+Can Large Language Models Be an Alternative to Human Evaluations? 
+Large Language Models are Not Yet Human-Level Evaluators for Abstractive Summarization 
+MEGA: Multilingual Evaluation of Generative AI 
+Extrinsic Evaluation of Machine Translation Metrics 
+EpiK-Eval: Evaluation for Language Models as Epistemic Models 
+The Devil Is in the Errors: Leveraging Large Language Models for Fine-grained Machine Translation Evaluation 
+HyperT5: Towards Compute-Efficient Korean Language Modeling 
+Comparing the Evaluation and Production of Loophole Behavior in Humans and Large Language Models 
+Evaluating Evaluation Metrics: A Framework for Analyzing NLG Evaluation Metrics using Measurement Theory 
+Training and Meta-Evaluating Machine Translation Evaluation Metrics at the Paragraph Level 
+-------
+eBLEU: Unexpectedly Good Machine Translation Evaluation Using Simple Word Embeddings 
+The OPUS-MT Dashboard – A Toolkit for a Systematic Evaluation of Open Machine Translation Models 
+Terminology-Aware Translation with Constrained Decoding and Large Language Model Prompting 
+Automating Behavioral Testing in Machine Translation 
+Trained MT Metrics Learn to Cope with Machine-translated References 
+A Benchmark for Evaluating Machine Translation Metrics on Dialects without Standard Orthography 
+Towards Better Evaluation for Formality-Controlled English-Japanese Machine Translation 
+-------
+Stop Uploading Test Data in Plain Text: Practical Strategies for Mitigating Data Contamination by Evaluation Benchmarks 
+NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark 
+```
+
+## **Me:** Not bad, I get 3 groups automatically, let me see if I can refine the groups and add some categories title to them.
+
+
+# Step 1b: Clean up the clusters and label them.
+
+
+### Humans + Evaluation
+- Are Human Explanations Always Helpful? Towards Objective Evaluation of Human Natural Language Explanations 
+- Can Large Language Models Be an Alternative to Human Evaluations? 
+- Large Language Models are Not Yet Human-Level Evaluators for Abstractive Summarization
+- ParroT: Translating during Chat using Large Language Models tuned with Human Translation and Feedback
+- Comparing the Evaluation and Production of Loophole Behavior in Humans and Large Language Models 
+
+### General Evaluation
+- MEGA: Multilingual Evaluation of Generative AI
+- Beyond Factuality: A Comprehensive Evaluation of Large Language Models as Knowledge Generators
+- EpiK-Eval: Evaluation for Language Models as Epistemic Models 
+
+### Meta-evaluation
+- Evaluating Evaluation Metrics: A Framework for Analyzing NLG Evaluation Metrics using Measurement Theory
+- Training and Meta-Evaluating Machine Translation Evaluation Metrics at the Paragraph Level 
+
+### Machine Translation related
+- Extrinsic Evaluation of Machine Translation Metrics
+- The Devil Is in the Errors: Leveraging Large Language Models for Fine-grained Machine Translation Evaluation 
+- eBLEU: Unexpectedly Good Machine Translation Evaluation Using Simple Word Embeddings 
+- The OPUS-MT Dashboard – A Toolkit for a Systematic Evaluation of Open Machine Translation Models
+- Automating Behavioral Testing in Machine Translation
+- Trained MT Metrics Learn to Cope with Machine-translated References
+- A Benchmark for Evaluating Machine Translation Metrics on Dialects without Standard Orthography 
+- Towards Better Evaluation for Formality-Controlled English-Japanese Machine Translation
+
+### Machine Translation / Model buidling
+- Terminology-Aware Translation with Constrained Decoding and Large Language Model Prompting 
+- HyperT5: Towards Compute-Efficient Korean Language Modeling 
+ 
+### Data Contamination
+- Stop Uploading Test Data in Plain Text: Practical Strategies for Mitigating Data Contamination by Evaluation Benchmarks 
+- NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark 
 ```
