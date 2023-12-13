@@ -203,3 +203,27 @@ That goes down to ~3 mins per paper.
 - **Data contamination** 2 papers = 6 mins
 
 **Me talking to myself:** 37 papers in 2 hours... 頑張れ!
+
+
+----
+
+
+### Are Human Explanations Always Helpful? Towards Objective Evaluation of Human Natural Language Explanations 
+
+Problem: Can we evaluate human alignment/explanation data by measuring their helpfulness towards model predictions?
+
+Approach: 
+  - An extension of the "Simulatability" metric from  https://arxiv.org/abs/1702.08608
+  - a prompt-based unified data format that can convert classification or multiple choice tasks into a generation task in/output
+      - **Me commenting to myself**: okay, so just make everything a nail so that your hammer works, not that I disagree with it but we did the same on  https://arxiv.org/abs/1812.05774 =)
+   
+Strength:
+  - Valid work to propose a metric and look at how we evaluate data's usefulness w.r.t. to the model
+
+Weakness (nitpicking):
+  - There are sooooo many bolded and/or colored text in the paper @_@
+
+Usefulness:
+  - Good to know kind of paper, no particular resource created/provided...
+
+**Time taken:** 4 mins
