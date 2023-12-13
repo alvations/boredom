@@ -312,6 +312,8 @@ Usefulness:
    - More exploration to this "Reason then Score" idea is good for MT eval
  - Code and data on https://github.com/DAMO-NLP-SG/LLM_summeval
 
+Time taken: 3 mins
+
 ----
 
 ## Comparing the Evaluation and Production of Loophole Behavior in Humans and Large Language Models
