@@ -314,4 +314,10 @@ Usefulness:
 
 ----
 
-## 
+## Comparing the Evaluation and Production of Loophole Behavior in Humans and Large Language Models
+
+Okay this paper, hmmmm, first when I google I found it on ICML https://icml.cc/virtual/2023/27884 and then seeing it on https://aclanthology.org/2023.findings-emnlp.264/ 
+
+Hmmmm, hmmm, okay disqualify it as not part of ACL/EMNLP and I can skip blitzing this (but I'll come back to this paper after my blitz session).
+
+
