@@ -69,10 +69,9 @@ https://aclanthology.org/2023.wmt-1.80/
 
 The goal here is to categorize the papers selected within 25-30 mins.
 
-I'm getting too lazy to categorize the papers manually and copy+pasting the title from the URLs I've copied, so I did this =) 
+I'm getting too lazy to copy+pasting the title from the URLs I've copied, so I did this =) 
 
-
-```
+```python
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
@@ -90,3 +89,26 @@ for url in tqdm(selected.split('\n')):
     titles.append(bsoup.find('title').text.rpartition('-')[0])
 ```
 
+Then I got even lazier, why categorize when I can make a model do it for me and I edit it afterwards.
+
+From https://github.com/UKPLab/sentence-transformers/blob/master/examples/applications/clustering/fast_clustering.py
+
+```
+from sentence_transformers import SentenceTransformer, util
+import os
+import csv
+import time
+
+
+# Model for computing sentence embeddings. We use one trained for similar questions detection
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+corpus_embeddings = model.encode(
+    titles, batch_size=15, 
+    show_progress_bar=True, convert_to_tensor=True)
+
+#Two parameters to tune:
+#min_cluster_size: Only consider cluster that have at least 25 elements
+#threshold: Consider sentence pairs with a cosine-similarity larger than threshold as similar
+clusters = util.community_detection(corpus_embeddings, min_community_size=2, threshold=0.75)
+```
