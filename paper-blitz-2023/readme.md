@@ -169,7 +169,7 @@ NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for eac
 - Evaluating Evaluation Metrics: A Framework for Analyzing NLG Evaluation Metrics using Measurement Theory
 - Training and Meta-Evaluating Machine Translation Evaluation Metrics at the Paragraph Level 
 
-### Machine Translation related
+### Machine Translation metrics related
 - Extrinsic Evaluation of Machine Translation Metrics
 - The Devil Is in the Errors: Leveraging Large Language Models for Fine-grained Machine Translation Evaluation 
 - eBLEU: Unexpectedly Good Machine Translation Evaluation Using Simple Word Embeddings 
@@ -186,8 +186,20 @@ NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for eac
 ### Data Contamination
 - Stop Uploading Test Data in Plain Text: Practical Strategies for Mitigating Data Contamination by Evaluation Benchmarks 
 - NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark 
-```
 
 **Time taken:** ~15 mins for the code and cluster and playing around the `min_community_size` and `threshold` and ~5 mins to just go through the clusters quickly, reshuffle some papers and put labels on them. Amazing!! Clustering did help with the categorization step of "paper-blitz"!!
 
 
+# The actual work... Step 2: Reading the papers
+
+We have 37 papers and 6 groups of paper, and 2 hours before I have to do serious work at work... 
+That goes down to ~3 mins per paper.
+
+- **Humans + Evaluation**: 5 papers = 15 mins
+- **General Evaluation**: 3 papers = 9 mins
+- **Meta-evaluation**: 2 papers = 6 mins
+- **MT metrics**: 8 papers = 24 mins
+- **MT / LM modeling** 2 papers = 6 mins
+- **Data contamination** 2 papers = 6 mins
+
+**Me talking to myself:** 37 papers in 2 hours... 頑張れ!
