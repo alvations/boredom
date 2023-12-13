@@ -285,5 +285,33 @@ Time taken: 9 mins
 
 ----
 
+## Large Language Models are Not Yet Human-Level Evaluators for Abstractive Summarization
+
+Problem: How good are LLMs to replace humans evals for summarization?
+
+Approach: 
+
+1) Prompt it out (Reason then Score):
+
+<img src="https://github.com/alvations/boredom/assets/1050316/0493ba95-eefd-4291-8e15-772b1975d3b6" width="220">
+
+
+2) Prompt it out T5 style (Give it some MCQ choices)
+
+<img src="https://github.com/alvations/boredom/assets/1050316/bd387635-dc28-48ac-ad82-194fc07f9755" width="220">
+
+
+Strength:
+ - A comprehensive study across ROUGE, BERTScore, BartScore and Prompt-GPT scores
+
+Weakness:
+ - From gisting the paper, nothing much. Good work =)
+
+Usefulness:
+ - The Reason then Score style should be applied #neuralempty QE, actually some of the public models like Anthropic's Claude is already giving the reasoning after the score when you GEMBA-prompt it.
+   - More exploration to this "Reason then Score" idea is good for MT eval
+ - Code and data on https://github.com/DAMO-NLP-SG/LLM_summeval
 
 ----
+
+## 
