@@ -257,3 +257,33 @@ Usefulness:
 
 
 Time taken: 7 mins
+
+
+----
+
+## ParroT: Translating during Chat using Large Language Models tuned with Human Translation and Feedback
+
+Problem: What if we can prompt the model to make it do different things?
+
+Approach: This picture sums it up
+
+<img src="https://github.com/alvations/boredom/assets/1050316/40f4cc69-6f84-4d0d-9ee3-4090f579ba14" width="220">
+
+Strength:
+ - There's a lot of nitty gritty details on how the experimental setup provides one hypothesis after another.
+ - This might be the right direction for #neuralempty, to start with the MT model, then make it LLM-like capabilities. Not the reverse where there's some "emergent abilities" and we force it to scale/learn multilinguality
+
+Weakness:
+ - While it's out-of-scope for the paper, the open source/public alternatives for MT models (not LLM) were not compared to. I guess the commercial APIs is kinda representative for the sake of understanding how far the LLM-ish approach to MT, but it'll still be nice to see just quote/compare Table 3 results to vanilla transformers
+
+Usefulness:
+ - the prompts, we can re-use them to make LLMs do more than "GEMBA-like" work.
+ - Generating "Error-Guided" translations as synthetic data for tuning QE metric might be a good idea
+ - Code and model on https://github.com/wxjiao/ParroT
+
+Time taken: 9 mins
+
+----
+
+
+----
