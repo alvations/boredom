@@ -69,3 +69,58 @@ https://aclanthology.org/2023.wmt-1.80/
 
 The goal here is to categorize the papers selected within 25-30 mins.
 
+I'm getting too lazy to categorize the papers manually and copy+pasting the title from the URLs I've copied, so I did this =) 
+
+
+```
+import requests
+from bs4 import BeautifulSoup
+from tqdm import tqdm
+
+selected = """https://aclanthology.org/2023.acl-long.730/
+https://aclanthology.org/2023.acl-long.821/
+https://aclanthology.org/2023.acl-long.866/
+https://aclanthology.org/2023.acl-long.870/
+https://aclanthology.org/2023.acl-demo.30/
+https://aclanthology.org/2023.acl-demo.56/
+https://aclanthology.org/2023.acl-industry.36/
+https://aclanthology.org/2023.acl-industry.40/
+https://aclanthology.org/2023.emnlp-main.135/
+https://aclanthology.org/2023.emnlp-main.258/
+https://aclanthology.org/2023.emnlp-main.308/
+https://aclanthology.org/2023.emnlp-main.390/
+https://aclanthology.org/2023.emnlp-main.464/
+https://aclanthology.org/2023.emnlp-main.496/
+https://aclanthology.org/2023.emnlp-main.584/
+https://aclanthology.org/2023.emnlp-main.585/
+https://aclanthology.org/2023.emnlp-main.593/
+https://aclanthology.org/2023.emnlp-main.676/
+https://aclanthology.org/2023.emnlp-main.699/
+https://aclanthology.org/2023.emnlp-main.724/
+https://aclanthology.org/2023.emnlp-main.859/
+https://aclanthology.org/2023.emnlp-main.859/
+https://aclanthology.org/2023.findings-emnlp.58/
+https://aclanthology.org/2023.findings-emnlp.264/
+https://aclanthology.org/2023.findings-emnlp.278/
+https://aclanthology.org/2023.findings-emnlp.722/
+https://aclanthology.org/2023.findings-emnlp.966/
+https://aclanthology.org/2023.findings-emnlp.1001/
+https://aclanthology.org/2023.calcs-1.1/
+https://aclanthology.org/2023.wmt-1.49/
+https://aclanthology.org/2023.wmt-1.61/
+https://aclanthology.org/2023.wmt-1.67/
+https://aclanthology.org/2023.wmt-1.96/
+https://aclanthology.org/2023.wmt-1.99/
+https://aclanthology.org/2023.wmt-1.100/
+https://aclanthology.org/2023.wmt-1.97/
+https://aclanthology.org/2023.wmt-1.95/
+https://aclanthology.org/2023.wmt-1.80/"""
+
+titles = []
+
+for url in tqdm(selected.split('\n')):
+    response = requests.get(url)
+    bsoup = BeautifulSoup(response.content.decode('utf8'))
+    titles.append(bsoup.find('title').text.rpartition('-')[0])
+```
+
