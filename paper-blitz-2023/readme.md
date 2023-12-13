@@ -236,8 +236,7 @@ Problem: Can we just eliminate humans to evaluate models?
 
 Approach: This picture sums it up
 
-![image](https://github.com/alvations/boredom/assets/1050316/5cd6cee5-8a61-4d74-a5ed-0b96003ea70d)
-
+<img src="https://github.com/alvations/boredom/assets/1050316/5cd6cee5-8a61-4d74-a5ed-0b96003ea70d" width="220">
 
 Results: 
  - Use LLM to do eval cos humans disagree with each other models don't
