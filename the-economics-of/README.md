@@ -20,3 +20,4 @@ Using subs from https://downsub.com/ in these videos:
  - https://www.youtube.com/watch?v=3JKWmWAlMD4
  - https://www.youtube.com/watch?v=fq6jDxJk1LM
 
+Note: There's more on https://www.youtube.com/playlist?list=PLqQNt9DP_BNBKa8ss5ROk2wLYl9JUdeYS
