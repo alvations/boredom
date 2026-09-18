@@ -53,6 +53,29 @@ was wrong, because the corrections are the most useful thing here.
 | `exp2` `rank(perm) % V` | Tests routing around a corrupted training signal, not a bandwidth limit |
 | `exp1` speedup | Missing the head cost; kill criterion is `max S ≤ 1`, so the omission could invert the verdict |
 
+## Errata round 2: found by running the experiments
+
+The audits were done before anything was run. Running it found four more, three of which
+invert a claim rather than tighten it.
+
+| Was | Actually | Fixed in |
+|---|---|---|
+| Round cost charges drafting and verification | **Omits the bonus position's full-depth pass.** Drafting touches positions `t..t+γ-1`; verification also needs full depth at `t+γ`. At `ρ=1` the broken model returns `S=1.735`, but `ρ=1` means the draft *is* the target, so `S=1` is forced | `Prop 3.15`, `Rmk 3.16` |
+| Cache reuse is the structural advantage of self-drafting | **Backwards when memory-bound.** Reuse splits verification across two depths, and a memory-bound pass costs a whole weight stream however many positions it covers, so the lower blocks are paid twice: 2.25 vs 1.50 at `ρ=0.25, γ=2`. Helps only when compute-bound. I defended this against the audit and was wrong | `Prop 3.19`, `Rmk 3.20` |
+| Acceptance-bound looseness is mainly Cauchy–Schwarz | **The softmax stage alone is fatal** — 46× too small at `ℓ=5` even when fed the measured spread. Cauchy–Schwarz adds a further 2.5×. A useful bound needs a different proof strategy, not a tighter constant | `Rmk 3.10`, §6.3 |
+| Geometric yield at mean α under-estimates (Jensen) | **It over-estimates**, by 12%: 1.320 measured against 1.481. Jensen governs variation *between* contexts; within a round each accepted draft moves the model onto its own continuation, where a shallow draft agrees less | §6.6 |
+| Bounded state fails off a cliff | **Graceful degradation**, as the Fano form predicts: 0.83 / 0.76 / 0.71 at `b=n-1`. Pre-registration withdrawn | `Rmk 5.13`, §6.8 |
+
+### Experiment errata
+
+| Was | Actually |
+|---|---|
+| Corpus globs `**/*.py` | The experiment sources live in this repo, so **editing an experiment changed its own evaluation data** — measured α drifted 0.189 → 0.249 across two runs of one script. Corpus now excludes `experiments/`, and the validation split is frozen into the checkpoint |
+| exp3b at 800 steps | Undertrained. Seven cells failed *with sufficient capacity*, including 4 bits failing to hold 2 bits; at 3000 steps that cell reaches 1.000 |
+| exp3b/exp2 one-hot interface over `2^b` symbols | Same `b` bits, but the optimiser must **discover** an injective code through a biased straight-through gradient, and largely cannot. `b` independent binary units make the natural solution directly representable and reproduce the predicted threshold |
+| exp2 at T=12 | Discrete scored ~0 at every width, continuous 1.000 — which reads as confirming the bandwidth thesis. **It doesn't**: a bound binding at 6.91 bits cannot explain failure at 20 bits. The constraint was credit assignment through twelve stacked quantisations. At T=4 the real threshold appears |
+| "cells match prediction" as the summary statistic | Weights both error directions equally, when only **success below threshold** can refute a lower bound. Violations now reported separately |
+
 ## What survived unchanged
 
 - Speculative sampling is exact for an arbitrary draft, and acceptance is `1 − TV(p,q)`.
@@ -61,4 +84,9 @@ was wrong, because the corrections are the most useful thing here.
 - Self-drafting dominates an external draft of comparable relative cost — now proved in
   every regime `w`, not just the memory-bound endpoint.
 - `TC⁰ ≠ P` kills the strong form of the latent-reasoning complaint.
-- The HMM forward identity and its Viterbi variant, now verified against an oracle.
+- The HMM forward identity and its Viterbi variant, verified against a brute-force oracle
+  per `(t,j)`, with a negative control confirming the hypothesis split.
+- The no-embedding impossibility, confirmed numerically on both obstructions.
+- Exactness for an arbitrary draft, confirmed at the sampling-noise floor — this is what
+  makes the shortlisted draft head legitimate.
+- Both capacity bounds: no cell below either threshold ever succeeded.

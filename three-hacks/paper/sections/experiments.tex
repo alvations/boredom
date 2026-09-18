@@ -147,21 +147,100 @@ one step. The commutator of two observation-conditioned transition operators is
 $\|\Psi_0\Psi_1 - \Psi_1\Psi_0\|_{\max} = 4.5\times10^{-2}$, so they are not
 simultaneously diagonalisable. Both obstructions hold numerically.
 
-\subsection{Capacity: the bound is never violated, achievability is hard to show}
+\subsection{Interface bandwidth, and an artefact that would have flattered us}
+\label{sec:exp-bandwidth}
 
-Theorem~\ref{thm:recall} predicts that a $b$-bit interface can retain $n$ binary
-values iff $b \ge n$. Sweeping both, no cell with $b < n$ ever reached the
-success threshold --- the bound is never violated, which is the only direction in
-which a lower bound can fail. The $n=2$ column reaches $1.00$ at $b=2,3,4$ as
-predicted.
+Theorem~\ref{thm:stream} predicts that a streaming step machine solves
+$\mathrm{PROD}_{N,T}$ iff its interface carries at least $\log_2(N!)$ bits. For
+$N=5$ that threshold is $6.91$ bits. Table~\ref{tab:bandwidth} sweeps the
+interface width at $T=4$.
 
-The achievability side is limited by optimisation rather than by capacity, and
-this nearly misled us. An initial sweep at $800$ training steps produced seven
-cells that failed \emph{with sufficient capacity}, including $b=4$, $n=2$, where
-$16$ symbols must store $2$ bits. No capacity argument can explain that, since a
-$4$-bit interface strictly contains a $3$-bit one and $b=3$, $n=2$ succeeded in
-the same sweep; at $3000$ steps that cell reaches $1.000$ on every seed. An
-undertrained discrete bottleneck is empirically indistinguishable from a capacity
-ceiling, and a symmetric ``fraction of cells matching'' score obscures this by
-weighting both error directions equally when only one of them can refute the
-theorem. We report the violation count separately for this reason.
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrrrrr}
+\toprule
+interface (bits) & 3 & 4 & 5 & 6 & 7 & 8 & 15 & $\R^{96}$ \\
+\midrule
+accuracy & 0.359 & 0.545 & 0.614 & 0.786 & 0.852 & 0.917 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
+\caption{Accuracy against interface width, $N=5$, $T=4$. The information-theoretic
+threshold is $\log_2 5! = 6.91$ bits. No width below it reaches success, accuracy
+is monotone in width, and the success threshold is crossed at $8$ bits.}
+\label{tab:bandwidth}
+\end{table}
+
+The bound is respected --- no sub-threshold width succeeds --- and degradation
+below it is smooth rather than cliff-like, again matching the Fano reading.
+Crossing at $8$ rather than $7$ bits indicates roughly one bit of coding
+overhead: gradient descent does not find the dense Lehmer code that saturates the
+entropy bound exactly. Consistently, an interface of $15$ bits --- the ``natural''
+code of five positions at three bits each --- succeeds outright.
+
+We report a negative methodological result alongside it, because it is the one
+artefact in this paper that would have \emph{supported} our thesis. Our first
+sweep used $T=12$ and found the discrete interface scoring below $0.06$ at every
+width from $3$ to $10$ bits while the continuous interface scored $1.000$.
+Read naively that is a textbook confirmation: discrete channel bad, continuous
+channel good, exactly as the informal bandwidth argument predicts. It is not a
+bandwidth effect at all. A bound binding at $6.91$ bits cannot explain failure at
+$10$ bits, and the diagnostic is decisive: at $T=12$ even a $20$-bit interface
+scores $0.037$, while at $T=4$ a $7$-bit interface scores $0.872$. The binding
+constraint at $T=12$ is credit assignment through twelve stacked hard
+quantisations, whose straight-through gradients degrade with the number of
+bottlenecks on the path. The two failure modes are separable because
+optimisation failure is monotone in $T$ while bandwidth failure is monotone in
+$b$.
+
+This is the third occasion in this work on which an optimisation artefact
+imitated a capacity result, after the undertrained sweep and the one-hot
+parameterisation of Section~\ref{sec:exp-capacity}. It is the only one whose
+naive reading favoured our own hypothesis, which is precisely why we pursued it.
+We suggest the general check: before reading a discrete-bottleneck failure as
+evidence of a capacity bound, verify that the failure is monotone in the
+bottleneck width and absent at widths well above the claimed threshold.
+
+\subsection{Capacity: the bound is never violated}
+\label{sec:exp-capacity}
+
+Theorem~\ref{thm:recall} predicts that a $b$-bit interface retains $n$ binary
+values iff $b \ge n$. Table~\ref{tab:capacity} sweeps both.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{crrrr}
+\toprule
+$b \backslash n$ & 2 & 3 & 4 & 5 \\
+\midrule
+1 & 0.51 & 0.67 & 0.63 & 0.60 \\
+2 & \textbf{1.00} & 0.83 & 0.75 & 0.71 \\
+3 & 1.00 & \textbf{1.00} & 0.76 & 0.71 \\
+4 & 1.00 & 1.00 & \textbf{1.00} & 0.81 \\
+5 & 1.00 & 1.00 & 0.87 & \textbf{1.00} \\
+\bottomrule
+\end{tabular}
+\caption{Recall accuracy by interface width $b$ and number of retained values
+$n$. The diagonal $b=n$ is bold. No cell with $b<n$ reaches success, which is
+the only direction in which a lower bound can fail.}
+\label{tab:capacity}
+\end{table}
+
+Nineteen of twenty cells match the prediction. The exception, $b=5$, $n=4$ at
+$0.87$, is optimiser noise rather than a capacity effect: $b=4$, $n=4$ reaches
+$1.00$ in the same sweep and five bits strictly contain four. Degradation below
+the diagonal is graceful ($0.83, 0.76, 0.71$ at $b=n-1$), matching the Fano form
+of Theorem~\ref{thm:recall} and contradicting the sharp cliff we originally
+pre-registered; that prediction is withdrawn.
+
+Two optimisation artefacts had to be cleared first, and both initially looked
+like capacity results. An early sweep at $800$ training steps produced seven
+failures \emph{with sufficient capacity}, including $b=4$, $n=2$, where $16$
+symbols must hold $2$ bits; no capacity argument can explain that, since $b=3$,
+$n=2$ succeeded in the same sweep, and at $3000$ steps the cell reaches $1.000$
+on every seed. Separately, parameterising the interface as one symbol from a
+codebook of size $2^b$ --- the same $b$ bits --- never cleared threshold at
+$n \ge 3$ even at $7000$ steps with two seeds, because it requires the optimiser
+to \emph{discover} an injective code through a biased straight-through gradient.
+Writing the interface as $b$ independent binary units, so that the natural
+solution ``unit $i$ holds value $i$'' is directly representable, produces the
+table above. Capacity is identical in both cases; only trainability differs.

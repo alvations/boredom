@@ -75,5 +75,17 @@ Theorem~\ref{thm:sim} and Theorem~\ref{thm:tc0} assume incompatible precision
 regimes. Theorem~\ref{thm:stream} requires a streaming read schedule that real
 architectures do not obey, and Remark~\ref{rem:barrington} explains why removing
 that hypothesis is not merely difficult but would separate $\mathrm{TC}^0$ from
-$\mathrm{NC}^1$. Finally, no experiment in this paper has been run: the results
-above are stated as predictions with kill criteria, and we report them as such.
+$\mathrm{NC}^1$.
+
+The experiments of Section~\ref{sec:experiments} are limited by scale and by
+environment. Our network policy denied access to public checkpoints, so all
+measurements are on a $1.71$M-parameter model with validation perplexity $431$;
+its diffuse output distributions inflate acceptance rates, and its six layers
+give coarse control over the exit depth $\rho$. The synthetic experiments are
+limited instead by optimisation: three separate artefacts in them initially
+imitated capacity results, and only one direction of failure --- success below a
+claimed threshold --- can refute a lower bound. We therefore report violation
+counts separately from match rates throughout. Nothing here establishes how
+these effects scale, and the quantitative claim most likely to move with scale is
+the early-exit speedup, since acceptance at small $\rho$ should improve with
+depth.

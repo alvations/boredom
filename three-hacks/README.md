@@ -137,64 +137,94 @@ hypothesis, since `s_t = s_{t−1}/2 + x_t/2` stores unbounded history in one re
 `m`-bit statefulness it holds, `m ≥ n log₂|V|`, and the Fano version predicts *graceful*
 degradation past threshold rather than the cliff I had pre-registered.
 
-## Validation plan — small models first, kill criteria up front
+## Results
 
-Every experiment has a **pre-registered prediction** and a **kill criterion**. Nothing
-scales up until the free version passes. Sizes are Qwen3-0.6B; three of the four need no
-training, and one runs with no dependencies at all.
+Everything below was run. The environment could not reach `huggingface.co` (the network
+policy denies it, as it does `download.pytorch.org`), so the language-model measurements
+are on a 1.71M-parameter model trained here that satisfies the paper's Definition 2.1
+exactly. It is weak — validation perplexity 431 against a 2048 vocab — which inflates
+acceptance rates and gives only six choices of exit depth. Full write-up with tables:
+[`paper/main.pdf`](paper/main.pdf), §6.
 
-| Exp | Question | Cost | Kill criterion |
-|-----|----------|------|----------------|
-| [`exp1`](experiments/exp1_early_exit.py) | Is `α_ℓ` high enough at small `ℓ/L` to beat the head-cost ceiling? | forward passes only | best `S ≤ 1.0` even after early-exit tuning and shortlisting |
-| [`exp2`](experiments/exp2_latent_vs_cot.py) | Does interface width bind at `log₂(n!)`? | ~1M params from scratch, CPU-feasible | accuracy stays high below threshold *with the read schedule enforced* |
-| [`exp3`](experiments/exp3_rnn_is_hmm.py) | Is the HMM identity real, and is the bridge really impossible? | stdlib only | identity fails, or support/commutator tests come out the other way |
-| [`exp3b`](experiments/exp3b_recall_capacity.py) | Where does bounded state break? | forward passes only | break-point does not move with `w` (falsifies the proxy, not the theorem) |
+| Claim | Result |
+|---|---|
+| Exactness for any draft (Thm 3.1) | **Confirmed.** Indistinguishable from direct sampling; α matches `1−TV(p_ℓ,p_L)` to 10⁻³ |
+| Acceptance ↔ tail energy (Thm 3.7) | **Shape confirmed, bound useless.** 46× too small even fed the measured spread |
+| Round cost (Prop 3.15) | **Was wrong.** Omitted the bonus position; gave S=1.735 where S=1 is forced |
+| Cache reuse (old Rmk) | **Retracted.** Worse when memory-bound, better only when compute-bound |
+| Head-cost ceiling (Cor 3.17) | **Confirmed, and decisive** |
+| Yield vs geometric (Cor 3.12) | **My remark was backwards.** Decays *faster* than geometric |
+| HMM identity (Thm 5.6) | **Confirmed** against a brute-force oracle, per `(t,j)`, with a negative control |
+| No embedding (Thm 5.8) | **Confirmed**, both obstructions |
+| Recall ceiling (Thm 5.12) | **Confirmed**, 19/20 cells, no violation |
+| Interface bandwidth (Thm 4.10) | **Confirmed**, monotone in width, no violation |
 
-**exp1** measures `α_ℓ`, tail energy, and the acceptance bound per layer, then the speedup
-surface under the *corrected* cost including the head fraction `u`. It reports the bound's
-looseness split into its Cauchy–Schwarz and softmax stages, and the shortlisted-head
-variant with the measured `p_L(S^c)`.
+### The headline number
 
-> Prediction: the bound is vacuous and the split says the `D_U` step is responsible.
-> Untuned `α_ℓ` at `ρ=0.5` will not clear `S=1` once the head is charged; whether
-> shortlisting plus early-exit tuning rescues it is the actual open question.
+At this model's head fraction `u=0.153`, the best memory-bound speedup from early-exit
+self-drafting is **1.026**. At Qwen3-0.6B's `u=0.26`, **no early-exit layer beats 1.0 at
+all** — the optimum retreats to the degenerate ρ=1. The unembedding cost alone decides it.
+A 2.6% gain on a model whose acceptance rates are already inflated is not something to
+build on. Thesis 1 now rests entirely on whether early-exit training moves α, which is
+the open question.
 
-**exp2** is a step machine under a **streaming Markov schedule** — step `i` sees generator
-`g_i` and the previous interface, nothing else — with the interface content *unsupervised*
-and trained through a straight-through Gumbel-softmax. That makes `V` a pure channel width
-rather than a corrupted label, and it closes the re-read escape that no amount of depth
-tuning closes on its own.
+Also worth recording: at layer 1, sampling-mode acceptance is 0.327 but greedy top-1
+agreement is only **0.052**. Those govern different deployment modes, and a 6× gap means
+an acceptance rate that reads as tolerable for sampled decoding is near-useless for greedy.
 
-> Prediction: accuracy collapses exactly where `log₂V < log₂(n!)`, and the collapse point
-> moves with `V` alone at fixed task and model.
+### Four things I got wrong, found by running it
 
-**exp3** verifies the HMM identity per `(t,j)` against brute-force path enumeration (the
-only non-circular check available — an earlier version compared a loop against its own
-rewrite, which cannot fail), with a negative control, and then verifies the impossibility
-of the bridge directly.
+1. **The cost model omitted a forward pass.** Caught by the ρ→1 sanity check: drafting with
+   the full model *is* ordinary decoding, so S must be 1. It returned 1.735. Recommended as
+   a standing check on any speculative-decoding cost model — it survived derivation *and*
+   adversarial review.
+2. **Cache reuse doesn't help when memory-bound.** I defended this against the audit and was
+   wrong. Reuse splits verification across two depths, and a memory-bound pass costs a whole
+   weight stream regardless of position count, so the lower blocks get paid for twice.
+3. **The bound's looseness isn't mainly Cauchy–Schwarz.** I predicted it was. The softmax
+   stage alone is 46× off; Cauchy–Schwarz merely compounds it. A useful bound needs a
+   different proof strategy, not a tighter constant.
+4. **Acceptance decays faster than geometric, not slower.** I'd argued from Jensen that
+   estimating from a mean acceptance rate is conservative. Measured: 1.320 against 1.481
+   predicted — it *overstates* yield by 12%. The Jensen argument is about variation between
+   contexts; within a round each accepted draft moves the model onto its own continuation,
+   where a shallow draft agrees less.
 
-**exp3b** uses window attention as a bounded-state proxy. Note the Fano bound predicts
-*graceful* degradation, so the original "sharp cliff" prediction was wrong and has been
-retracted.
+### Three times an optimisation artefact impersonated a capacity result
 
-## Status
+This is the methodological lesson, and it cost more time than the theory did.
 
-`exp3` **runs and passes**, both parts, including the negative control and both
-impossibility checks. `exp1`, `exp2` and `exp3b` are written but **unrun**: no torch, no
-numpy and no GPU in the container this was written in. Every number attributed to them
-above is a prediction.
+- **Undertraining.** A sweep at 800 steps showed seven failures *with sufficient capacity*,
+  including 4 bits failing to store 2. At 3000 steps that cell hits 1.000.
+- **Parameterisation.** A one-hot codebook over `2^b` symbols never cleared threshold at
+  n≥3, because the optimiser must *discover* an injective code through a biased
+  straight-through gradient. Rewriting the same `b` bits as `b` independent binary units —
+  identical capacity — produced the exact predicted diagonal.
+- **Bottleneck depth, and this one flattered the thesis.** At T=12 the discrete interface
+  scored ~0 at *every* width while continuous scored 1.000 — which reads as a textbook
+  confirmation of the bandwidth argument. It isn't: a bound binding at 6.91 bits cannot
+  explain failure at 20 bits. The real constraint was credit assignment through twelve
+  stacked quantisations. At T=4 the genuine threshold appears cleanly.
 
-The paper in [`paper/`](paper/) is written but **not compiled** — no LaTeX toolchain here
-either. Cross-references and environment nesting are checked by script; typesetting is not.
+The general check: before reading a discrete-bottleneck failure as a capacity bound, verify
+the failure is monotone in the bottleneck width and absent well above the claimed threshold.
+And report violations — successes *below* threshold — separately from match rates, since
+only that direction can refute a lower bound.
 
-## Provenance
+## Reproducing
 
-The three sections were each audited adversarially after I wrote them. That process
-killed my thesis-2 headline outright (the cardinality error), killed the thesis-3 payoff
-(the bridge), found the omitted head cost in thesis 1, and found a circular test in
-`exp3`. [`theory.md`](theory.md) records what was wrong and where each correction lives.
-Claims that survived are marked as such; nothing here should be read as confirmed until
-the experiments run.
+```
+pip install torch                                  # pypi works; pytorch.org is blocked here
+python3 experiments/exp3_rnn_is_hmm.py             # stdlib only, ~10s
+python3 experiments/exp0_pretrain.py --steps 1500 --vocab 2048 --d 128 --layers 6 --ctx 64 --bs 16
+python3 experiments/exp1_local.py --rounds 200
+python3 experiments/exp3b_recall_capacity.py --steps 2500 --d 96 --ns 2 3 4 5 --bits 1 2 3 4 5
+python3 experiments/exp2_latent_vs_cot.py --n 5 --T 4 --steps 4000 --seeds 2 --sweep-v --bit-list 3 4 5 6 7 8 15
+```
+
+Build the paper with `cd paper && latexmk -pdf main.tex`. `neurips_2024.sty` is unavailable
+here (media.neurips.cc is blocked), so the preamble falls back to a close approximation;
+drop the real style file in and flip one line to switch.
 
 ## Reading that got here first
 
