@@ -1,0 +1,17 @@
+# LaTeX build artifacts (main.pdf is committed deliberately)
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.bbl
+*.blg
+
+# Python
+__pycache__/
+*.pyc
+
+# Experiment outputs: checkpoints and derived corpora are reproducible
+*.pt
+.corpus_*.txt
+exp*_results.json
