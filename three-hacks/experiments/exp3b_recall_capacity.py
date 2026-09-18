@@ -13,6 +13,21 @@ exactly b = log2(V) bits; then read a query index q; then emit v_q. The query
 arrives AFTER the values, so the state must carry all of them -- exactly the
 quantifier order the theorem requires. Storing n binary values needs n bits.
 
+TWO PARAMETERISATIONS OF THE SAME CAPACITY. The interface carries exactly b
+bits either way, which is the only quantity the theorem mentions, but they train
+very differently:
+
+  bits   (default) b INDEPENDENT binary units with a straight-through
+         estimator. The natural solution -- "unit i holds value i" -- is
+         directly representable, so the optimiser can find it.
+  onehot a single symbol from a codebook of size 2^b. Same capacity, but the
+         optimiser must DISCOVER a global injective code, and with a biased
+         straight-through gradient it largely fails to: at n>=3 this never
+         cleared threshold even at 7000 steps with two seeds.
+
+Reporting only the onehot numbers would have looked like evidence against the
+theorem's tightness when it is an artefact of how the bottleneck is written.
+
 OPTIMISATION BUDGET MATTERS, AND MISLED US ONCE. At 800 steps this sweep
 produced seven cells that failed WITH SUFFICIENT CAPACITY -- including b=4, n=2,
 where 16 symbols must hold 2 bits. That cannot be a capacity effect, since a
@@ -44,26 +59,37 @@ import torch.nn.functional as F
 class RecallMachine(nn.Module):
     """Streaming step machine with a hard b-bit interface between steps."""
 
-    def __init__(self, n, V, d=96):
+    def __init__(self, n, b, d=96, mode="bits"):
         super().__init__()
-        self.n, self.V = n, V
+        self.n, self.b, self.mode = n, b, mode
         self.emb_val = nn.Embedding(2, d)
         self.emb_q = nn.Embedding(n, d)
         self.phase = nn.Embedding(2, d)
         self.core = nn.Sequential(nn.Linear(2 * d, 4 * d), nn.GELU(),
                                   nn.Linear(4 * d, d), nn.LayerNorm(d))
-        self.to_sym = nn.Linear(d, V)
-        self.emb_sym = nn.Embedding(V, d)
+        if mode == "bits":
+            self.to_bits = nn.Linear(d, b)
+            self.from_bits = nn.Linear(b, d)
+        else:
+            self.to_sym = nn.Linear(d, 2 ** b)
+            self.emb_sym = nn.Embedding(2 ** b, d)
         self.readout = nn.Linear(d, 2)
         self.s0 = nn.Parameter(torch.randn(d) * 0.02)
+
+    def squeeze_state(self, s, tau):
+        """Force the state through exactly b bits."""
+        if self.mode == "bits":
+            p = torch.sigmoid(self.to_bits(s))
+            hard = (p > 0.5).float()
+            return self.from_bits(hard + p - p.detach())     # straight-through
+        return F.gumbel_softmax(self.to_sym(s), tau=tau, hard=True) @ self.emb_sym.weight
 
     def forward(self, vals, q, tau=1.0):
         B = vals.shape[0]
         s = self.s0.expand(B, -1)
         for i in range(self.n):                      # read the values
             x = self.emb_val(vals[:, i]) + self.phase(torch.zeros_like(q))
-            s = self.core(torch.cat([x, s], -1))
-            s = F.gumbel_softmax(self.to_sym(s), tau=tau, hard=True) @ self.emb_sym.weight
+            s = self.squeeze_state(self.core(torch.cat([x, s], -1)), tau)
         x = self.emb_q(q) + self.phase(torch.ones_like(q))   # then the query
         s = self.core(torch.cat([x, s], -1))
         logits = self.readout(s)
@@ -77,8 +103,8 @@ def batch(bs, n, device):
     return vals, q
 
 
-def run(n, V, d, steps, bs, device, lr=2e-3):
-    model = RecallMachine(n, V, d).to(device)
+def run(n, b, d, steps, bs, device, lr=2e-3, mode="bits"):
+    model = RecallMachine(n, b, d, mode).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps)
     for i in range(steps):
@@ -99,6 +125,8 @@ def main():
     ap.add_argument("--bits", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6])
     ap.add_argument("--d", type=int, default=96)
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--mode", default="bits", choices=("bits", "onehot"),
+                    help="interface parameterisation; identical capacity")
     ap.add_argument("--seeds", type=int, default=1,
                     help="report the best over this many seeds")
     ap.add_argument("--bs", type=int, default=128)
@@ -106,7 +134,9 @@ def main():
     args = ap.parse_args()
     device = "cpu"
 
-    print("Theorem 5.12: an m-bit state cannot recall n binary values when m < n.")
+    print(f"Theorem 5.12: an m-bit state cannot recall n binary values when m < n.")
+    print(f"Interface parameterisation: {args.mode} ({args.steps} steps, "
+          f"{args.seeds} seed(s))")
     print("Rows = interface width b (bits), columns = n values to retain.")
     print("Prediction: ~1.0 on and above the diagonal b >= n, chance (0.5) below.\n")
     header = "  b \\ n " + "".join(f"{n:>7}" for n in args.ns)
@@ -114,13 +144,13 @@ def main():
 
     table = {}
     for b in args.bits:
-        V = 2 ** b
         cells = []
         for n in args.ns:
             acc = 0.0
             for sd in range(args.seeds):
                 random.seed(args.seed + sd); torch.manual_seed(args.seed + sd)
-                acc = max(acc, run(n, V, args.d, args.steps, args.bs, device))
+                acc = max(acc, run(n, b, args.d, args.steps, args.bs, device,
+                                   mode=args.mode))
             table[(b, n)] = acc
             cells.append(acc)
         print(f"{b:>5}  " + "".join(f"{c:>7.2f}" for c in cells))
