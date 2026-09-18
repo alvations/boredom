@@ -1,0 +1,167 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup, and an honest account of scale}
+
+Our experimental environment cannot reach \texttt{huggingface.co}: the network
+policy denies the connection, as it does \texttt{download.pytorch.org}. Public
+checkpoints were therefore unavailable and every measurement below is on a model
+we trained ourselves. That model satisfies Definition~\ref{def:model} exactly ---
+pre-norm residual blocks, RMSNorm, an unembedding --- with $L=6$, $d=128$,
+$V=2048$, $1.71$M parameters, trained on a $53$k-token corpus with a held-out
+split and early stopping.
+
+We state the consequences plainly rather than in a footnote. The model is
+\emph{weak}: validation perplexity is $431$ against a vocabulary of $2048$, i.e.\
+about $4.8\times$ better than uniform. Two specific distortions follow. First,
+diffuse output distributions overlap more, so measured acceptance rates
+$\alpha_\ell = 1 - \TV(p_\ell,p_L)$ are \emph{inflated} relative to a
+well-trained model. Second, at $L=6$ the shallowest available exit is
+$\rho = 0.167$, whereas a $28$-layer model offers far finer granularity exactly
+in the regime where early exit is attractive. Quantitative claims below should
+therefore be read as indicative; the qualitative ones
+(Sections~\ref{sec:exp-exact} and \ref{sec:exp-cost}) do not depend on scale, and
+the two errors we report finding are architecture-independent.
+
+\subsection{Exactness is confirmed at the sampling-noise floor}
+\label{sec:exp-exact}
+
+Theorem~\ref{thm:exact} predicts that speculative sampling with \emph{any} draft
+returns the target distribution exactly. Testing this against zero would be
+meaningless, since any finite sample has positive total variation from $p_L$; the
+correct reference is the noise floor, namely $\TV$ between $p_L$ and an equal
+number of direct draws from it. Table~\ref{tab:exact} reports both for
+$4\times10^{5}$ samples.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rrrrrr}
+\toprule
+layer & $\TV(\text{spec},p_L)$ & $\TV(\text{direct},p_L)$ & ratio
+      & $1-\TV(p_\ell,p_L)$ & observed accept \\
+\midrule
+1 & 0.0202 & 0.0196 & 1.033 & 0.3274 & 0.3271 \\
+3 & 0.0202 & 0.0196 & 1.033 & 0.5831 & 0.5833 \\
+5 & 0.0186 & 0.0193 & 0.965 & 0.7988 & 0.7978 \\
+\bottomrule
+\end{tabular}
+\caption{Speculative sampling is indistinguishable from direct sampling
+(ratio $\approx 1$), and the observed acceptance rate matches the predicted
+$1-\TV(p_\ell,p_L)$ to within $10^{-3}$.}
+\label{tab:exact}
+\end{table}
+
+This is the result that licenses Corollary~\ref{cor:shortlist}, since the
+shortlisted draft assigns zero probability to most of the vocabulary and would be
+invalid under any support hypothesis.
+
+\subsection{The acceptance bound is directionally right and numerically useless}
+
+Acceptance rises monotonically with depth exactly as tail energy falls:
+$\alpha_\ell = 0.327, 0.383, 0.424, 0.520, 0.693, 1.000$ against
+$T_\ell = 20.2, 17.8, 15.4, 12.6, 8.1, 0$. The shape predicted by
+Theorem~\ref{thm:accept} is therefore present.
+
+The bound itself is not usable. At $\ell=5$, where $\alpha_5 = 0.693$, feeding
+the bound the \emph{measured} logit spread gives $e^{-4.21} = 1.5\times10^{-2}$,
+already a factor of $46$ too small; the Cauchy--Schwarz step then inflates the
+spread by a further $2.5\times$, landing at $\approx 10^{-5}$.
+Remark~\ref{rem:loose} anticipated looseness and attributed it primarily to the
+$D_U$ step. That attribution was wrong: the softmax stage alone is fatal, and
+Cauchy--Schwarz merely compounds it. A useful bound needs a different proof
+strategy, not a tighter constant.
+
+\subsection{A cost-model error, caught by a sanity check}
+\label{sec:exp-cost}
+
+The most consequential empirical finding is an error in our own accounting. An
+earlier version of Proposition~\ref{prop:cost} charged drafting and verification
+but omitted the full-depth pass at the bonus position $t+\gamma$. Evaluated at
+$\rho = 1$ it returned $S = 1.735$, which is impossible: at $\rho=1$ the draft
+\emph{is} the target, so the procedure degenerates to ordinary autoregressive
+decoding and $S = 1$ is forced. Restoring the omitted pass gives exactly
+$S = 1.000$ (Remark~\ref{rem:sanity}). We recommend the $\rho\to1$ limit as a
+standing check on any speculative-decoding cost model; it is cheap and it caught
+an error that survived both derivation and adversarial review.
+
+The same experiment overturned our claim about cache reuse. Measured at $w=1$,
+reuse is \emph{worse} at every depth ($2.25$ against $1.50$ at $\rho=0.25$,
+$\gamma=2$), because splitting verification across two depths pays for the lower
+blocks' weight streaming twice; at $w=0$ it helps, $0.929$ against $0.667$. This
+is Proposition~\ref{prop:reuse}, and Remark~\ref{rem:kvreuse} retracts the
+earlier claim.
+
+\subsection{The head cost decides whether self-drafting pays}
+
+With the corrected model, the best attainable memory-bound speedup on our model
+is $S = 1.026$, at $\ell=1$, $\gamma=1$, with head fraction $u = 0.153$. Setting
+$u = 0.26$, the value for Qwen3-0.6B, \emph{no} early-exit layer exceeds $S=1$:
+the optimum retreats to the degenerate $\rho=1$. The margin is entirely
+determined by the unembedding cost, exactly as Corollary~\ref{cor:ceiling}
+predicts, and a $2.6\%$ gain on a model whose acceptance rates are already
+inflated is not a result we would build on.
+
+One further asymmetry deserves recording. At $\ell=1$ the sampling-mode
+acceptance rate is $\alpha_1 = 0.327$ while top-$1$ agreement between $p_1$ and
+$p_L$ is only $0.052$. These govern different deployment modes --- the former
+speculative sampling at temperature $1$, the latter greedy decoding --- and the
+gap of more than $6\times$ means an acceptance rate that looks tolerable for
+sampled decoding is close to useless for greedy decoding. Reported acceptance
+rates should always name the mode.
+
+\subsection{Yield: acceptance decays faster than geometric}
+
+Running $200$ real speculative rounds at $\ell=1$, $\gamma=4$ gives measured
+$\E[Y] = 1.320$ against $1.481$ from the geometric formula of
+Corollary~\ref{cor:geom} evaluated at $\bar\alpha = 0.327$. The measured prefix
+probabilities are $\Prob[A_j] = 0.250, 0.055, 0.010, 0.005$ against
+$\bar\alpha^{j} = 0.327, 0.107, 0.035, 0.011$ under independence: acceptance
+decays \emph{faster} than geometric within a round.
+
+This contradicts the remark following Corollary~\ref{cor:geom}, which argued from
+Jensen's inequality that cross-context heterogeneity makes the geometric formula
+a conservative under-estimate. That argument concerns variation \emph{between}
+contexts; within a round the dominant effect runs the other way, because each
+accepted draft moves the model onto its own continuation, where the shallow-layer
+draft agrees less well. Practitioners estimating speedup from a mean acceptance
+rate will therefore \emph{over}-state yield, by $12\%$ here.
+
+We note that the printed identity $\E[Y] = 1 + \sum_j \Prob[A_j]$ is a
+bookkeeping check only: both sides are computed from the same run, so it verifies
+our accounting rather than testing Proposition~\ref{prop:yield}, which is in any
+case a definitional identity.
+
+\subsection{The HMM identity and the impossibility of the bridge}
+
+Theorem~\ref{thm:hmm} is verified against brute-force enumeration over all $M^T$
+hidden paths, per $(t,j)$ rather than on aggregates of the final state, for $20$
+random HMMs. A negative control confirms the hypothesis split: with a signed
+transition matrix the sum-product identity still holds exactly (it is pure
+algebra) while the max-product reading breaks, since $(\max,\times)$ distributes
+only over $\R_{\ge0}$.
+
+Theorem~\ref{thm:noembed} is confirmed directly. Under a gated linear-attention
+update the set of rows on which two trajectories differ stays at $\{1\}$; under
+the forward algorithm a single differing coordinate spreads to all of $[m]$ in
+one step. The commutator of two observation-conditioned transition operators is
+$\|\Psi_0\Psi_1 - \Psi_1\Psi_0\|_{\max} = 4.5\times10^{-2}$, so they are not
+simultaneously diagonalisable. Both obstructions hold numerically.
+
+\subsection{Capacity: the bound is never violated, achievability is hard to show}
+
+Theorem~\ref{thm:recall} predicts that a $b$-bit interface can retain $n$ binary
+values iff $b \ge n$. Sweeping both, no cell with $b < n$ ever reached the
+success threshold --- the bound is never violated, which is the only direction in
+which a lower bound can fail. The $n=2$ column reaches $1.00$ at $b=2,3,4$ as
+predicted.
+
+The achievability side is limited by optimisation rather than by capacity, and
+this nearly misled us. An initial sweep at $800$ training steps produced seven
+cells that failed \emph{with sufficient capacity}, including $b=4$, $n=2$, where
+$16$ symbols must store $2$ bits. No capacity argument can explain that, since a
+$4$-bit interface strictly contains a $3$-bit one and $b=3$, $n=2$ succeeded in
+the same sweep; at $3000$ steps that cell reaches $1.000$ on every seed. An
+undertrained discrete bottleneck is empirically indistinguishable from a capacity
+ceiling, and a symmetric ``fraction of cells matching'' score obscures this by
+weighting both error directions equally when only one of them can refute the
+theorem. We report the violation count separately for this reason.

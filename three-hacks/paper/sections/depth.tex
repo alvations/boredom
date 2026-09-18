@@ -180,6 +180,18 @@ norm. It is also scale-free, as it must be, since $N$ discards the scale of its
 argument.
 \end{remark}
 
+\begin{remark}[What the bound is for]
+\label{rem:loose}
+Bound \eqref{eq:acceptbound} is monotone in the right quantity --- acceptance is
+governed by how much work the model has \emph{left} to do --- but we expect it to
+be numerically weak. Two inequalities give information away, and they can be
+measured separately: Cauchy--Schwarz with the diameter $D_U$ assumes the worst
+pair of unembedding rows aligns with the tail direction, and
+Lemma~\ref{lem:softmax} is tight only when the logit gap is spread uniformly
+across the vocabulary. We had expected the first to dominate;
+Section~\ref{sec:experiments} reports that this expectation was wrong.
+\end{remark}
+
 \begin{proposition}[Unconditional subspace refinement]
 \label{prop:rank}
 Let $P$ be any orthogonal projector and $Q = I - P$. Then
@@ -430,21 +442,6 @@ on the previous token --- because selecting a top-$k$ set requires the full logi
 vector and so would not save the streaming of $W_U$. Corollary~\ref{cor:shortlist}
 is the natural route around Corollary~\ref{cor:ceiling}, and it trades a bounded,
 \emph{measurable} acceptance loss for the head cost.
-\end{remark}
-
-\begin{remark}[On the value of cache reuse]
-\label{rem:kvreuse}
-It is sometimes objected that reusing the draft's cached keys and values is
-worthless in the memory-bound regime, on the grounds that the saving is in
-per-position arithmetic, which $w = 1$ already prices at zero. That is not what
-is being saved. Reuse allows verification to \emph{skip blocks $1..\ell$
-entirely}, and therefore to skip streaming their parameters --- which is exactly
-the cost that $w = 1$ charges. This is the term $(1-u)\rho D$ in
-Theorem~\ref{thm:dominance}, and it is why self-drafting wins even at
-$c_d = u + (1-u)\rho$, where the two schemes pay identical drafting cost. Two
-caveats are real: the saving applies only to positions on the accepted prefix,
-and ``identical'' holds up to floating-point reduction order between the two
-kernel shapes.
 \end{remark}
 
 \begin{remark}[The real obstruction is the training objective]

@@ -13,6 +13,16 @@ exactly b = log2(V) bits; then read a query index q; then emit v_q. The query
 arrives AFTER the values, so the state must carry all of them -- exactly the
 quantifier order the theorem requires. Storing n binary values needs n bits.
 
+OPTIMISATION BUDGET MATTERS, AND MISLED US ONCE. At 800 steps this sweep
+produced seven cells that failed WITH SUFFICIENT CAPACITY -- including b=4, n=2,
+where 16 symbols must hold 2 bits. That cannot be a capacity effect, since a
+4-bit interface strictly contains a 3-bit one and b=3, n=2 scored 1.00 in the
+same sweep. It was undertraining: at 3000 steps b=4, n=2 reaches 1.000 on every
+seed tested. The discrete bottleneck trains slowly, so an underpowered run looks
+exactly like a capacity ceiling. Default steps raised accordingly, and --seeds
+takes the best of several runs, which is the right estimator for an achievability
+claim ("a b-bit machine CAN do this") as opposed to an impossibility claim.
+
 PREDICTION (Theorem 5.12): success iff b >= n, i.e. the diagonal of the table.
 KILL: high accuracy at b < n, which would refute the bound rather than the
 proxy. Note the Fano form predicts graceful, not cliff-like, decay just below
@@ -88,7 +98,9 @@ def main():
     ap.add_argument("--ns", type=int, nargs="+", default=[2, 3, 4, 5, 6])
     ap.add_argument("--bits", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6])
     ap.add_argument("--d", type=int, default=96)
-    ap.add_argument("--steps", type=int, default=1200)
+    ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--seeds", type=int, default=1,
+                    help="report the best over this many seeds")
     ap.add_argument("--bs", type=int, default=128)
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
@@ -105,8 +117,10 @@ def main():
         V = 2 ** b
         cells = []
         for n in args.ns:
-            random.seed(args.seed); torch.manual_seed(args.seed)
-            acc = run(n, V, args.d, args.steps, args.bs, device)
+            acc = 0.0
+            for sd in range(args.seeds):
+                random.seed(args.seed + sd); torch.manual_seed(args.seed + sd)
+                acc = max(acc, run(n, V, args.d, args.steps, args.bs, device))
             table[(b, n)] = acc
             cells.append(acc)
         print(f"{b:>5}  " + "".join(f"{c:>7.2f}" for c in cells))
@@ -123,6 +137,11 @@ def main():
             print(f"  MISMATCH b={b} n={n}: predicted "
                   f"{'success' if pred_ok else 'failure'}, observed acc={acc:.2f}")
     print(f"  {ok}/{ok+bad} cells match the prediction.")
+    viol = [(b, n) for (b, n), a in table.items() if b < n and a >= 0.9]
+    print(f"  Cells that would REFUTE the bound (b < n yet accurate): "
+          f"{viol if viol else 'none'}")
+    print("  A failure at b >= n is an optimisation result, not a capacity one;")
+    print("  only a success at b < n would contradict Theorem 5.12.")
     if bad == 0:
         print("  Theorem 5.12's threshold reproduced exactly.")
 
