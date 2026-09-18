@@ -167,21 +167,36 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr,
                                                 total_steps=args.steps)
+
+    @torch.no_grad()
+    def val_loss(n=8):
+        model.eval()
+        v = sum(model(*(lambda b: (b, b))(get_batch(val_d, args.bs, args.ctx,
+                device)))[1].item() for _ in range(n)) / n
+        model.train()
+        return v
+
+    best = (float("inf"), None)          # early stopping: this corpus is small
     for i in range(args.steps):
         x = get_batch(train_d, args.bs, args.ctx, device)
         _, loss = model(x, x)
         opt.zero_grad(); loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); sched.step()
-        if (i + 1) % max(1, args.steps // 10) == 0:
-            model.eval()
-            with torch.no_grad():
-                xv = get_batch(val_d, args.bs, args.ctx, device)
-                vl = model(xv, xv)[1].item()
-            model.train()
+        if (i + 1) % max(1, args.steps // 20) == 0:
+            vl = val_loss()
+            flag = ""
+            if vl < best[0]:
+                best = (vl, {k: v.detach().clone()
+                             for k, v in model.state_dict().items()})
+                flag = "  <- best"
             print(f"  step {i+1}/{args.steps}  train {loss.item():.3f}  "
-                  f"val {vl:.3f}  (ppl {math.exp(min(vl,20)):.1f})")
+                  f"val {vl:.3f}  (ppl {math.exp(min(vl,20)):.1f}){flag}")
 
+    if best[1] is not None:                # restore the best-validation weights
+        model.load_state_dict(best[1])
+        vl = best[0]
+        print(f"restored best checkpoint: val {vl:.3f} (ppl {math.exp(min(vl,20)):.1f})")
     model.eval()
     # freeze the exact validation split into the checkpoint so downstream
     # measurements are reproducible and independent of the working tree

@@ -34,7 +34,7 @@ advance. Models are $\le$1B parameters; two experiments require no training.
 \ref{thm:dominance}).} For every layer $\ell$ of Qwen3-0.6B, measure
 $\alpha_\ell = 1 - \TV(p_\ell,p_L)$, tail energy $T_\ell$, and the bound
 \eqref{eq:acceptbound}, then evaluate the speedup surface with the corrected cost
-\eqref{eq:cself} including the head fraction $u \approx 0.26$. Report the
+\eqref{eq:cnoreuse} including the head fraction $u \approx 0.26$. Report the
 looseness of \eqref{eq:acceptbound} decomposed into its Cauchy--Schwarz and
 softmax stages, and compare against Proposition~\ref{prop:rank} with $P$ fitted
 to the post-norm tail. \textbf{Kill:} $\max_{\ell,\gamma} S \le 1$ both untuned

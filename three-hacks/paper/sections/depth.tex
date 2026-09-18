@@ -285,53 +285,100 @@ token can be sampled from it.
 
 \begin{proposition}[Round cost]
 \label{prop:cost}
-Let $\rho = \ell/L$ and $D = w + (1-w)\gamma$. Under
-Definitions~\ref{def:cost} and \ref{def:headfrac}, one round with lookahead
-$\gamma$ costs
+Let $\rho = \ell/L$ and $D_k = w + (1-w)k$. Drafting evaluates blocks $1..\ell$
+at positions $t,\dots,t+\gamma-1$. Verification requires full depth at all of
+$t,\dots,t+\gamma$; the final position $t+\gamma$, which supplies the bonus
+token, is never touched by drafting. Two verification strategies exist:
 \begin{align}
-  C_{\mathrm{self}}(\rho,\gamma,w)
+  C^{\mathrm{nr}}_{\mathrm{self}}
+    &= \gamma\big[(1-u)\rho + u\big] \;+\; D_{\gamma+1},
+    \label{eq:cnoreuse}\\
+  C^{\mathrm{re}}_{\mathrm{self}}
     &= \gamma\big[(1-u)\rho + u\big]
-     \;+\; \big[(1-u)(1-\rho) + u\big]\,D ,
-    \label{eq:cself}\\
-  C_{\mathrm{ext}}(c_d,\gamma,w)
-    &= \gamma c_d \;+\; D ,
+     \;+\; (1-u)(1-\rho)D_{\gamma} \;+\; (1-u) \;+\; u D_{\gamma+1},
+    \label{eq:creuse}\\
+  C_{\mathrm{ext}}
+    &= \gamma c_d \;+\; D_{\gamma+1},
     \label{eq:cext}
 \end{align}
-for early-exit self-drafting at layer $\ell$ and an external draft model of
-relative per-position cost $c_d$ respectively.
+and $C_{\mathrm{self}} = \min\{C^{\mathrm{nr}}_{\mathrm{self}},
+C^{\mathrm{re}}_{\mathrm{self}}\}$.
 \end{proposition}
 
 \begin{proof}
-Each of the $\gamma$ draft steps evaluates blocks $1..\ell$ at one position,
-costing $(1-u)\rho$ by Definitions~\ref{def:cost} and~\ref{def:headfrac}, plus
-the head, costing $u$; at $m=1$ these are independent of $w$. Verification
-evaluates $M$ at the $\gamma$ drafted positions. Blocks $1..\ell$ at those
-positions were already evaluated during drafting and their cached keys and
-values are exactly those verification requires, so only blocks $\ell+1..L$ are
-evaluated, costing $(1-u)(1-\rho)D$, together with the head at $\gamma$
-positions, costing $uD$. The external draft shares no blocks with $M$ and pays
-full verification $D$.
+Each of the $\gamma$ draft steps evaluates blocks $1..\ell$ and the head at a
+single position, costing $(1-u)\rho + u$ independently of $w$. For
+\eqref{eq:cnoreuse}, verification is one batched full-depth pass over the
+$\gamma+1$ positions, costing $D_{\gamma+1}$. For \eqref{eq:creuse}, cached keys
+and values let the $\gamma$ drafted positions resume at block $\ell+1$, costing
+$(1-u)(1-\rho)D_\gamma$, but position $t+\gamma$ has nothing cached and needs a
+full-depth pass of its own, costing $(1-u)$; the head is evaluated at all
+$\gamma+1$ positions. The external draft shares no blocks with $M$.
 \end{proof}
 
-\begin{theorem}[Self-drafting dominates in every regime]
+\begin{remark}[Sanity check, and an error it catches]
+\label{rem:sanity}
+At $\rho = 1$ the draft is the target, so $\alpha = 1$ and the scheme degenerates
+to ordinary autoregressive decoding, forcing $S = 1$. Both \eqref{eq:cnoreuse}
+and \eqref{eq:creuse} give $C = \gamma+1$ there at $w=1$, matching the yield
+$\gamma+1$. A cost model that omits the bonus position instead returns
+$S = (\gamma+1)/(\gamma+u) > 1$, manufacturing speedup from nothing. An earlier
+version of this paper contained exactly that error, and it was caught only by
+running the experiment.
+\end{remark}
+
+\begin{proposition}[Cache reuse is regime-dependent, and useless when memory-bound]
+\label{prop:reuse}
+At $w = 1$, $C^{\mathrm{re}}_{\mathrm{self}} \ge C^{\mathrm{nr}}_{\mathrm{self}}$
+for every $\rho \in [0,1]$, with equality only at $\rho = 1$. At $w = 0$ the
+inequality reverses for every $\rho > 0$.
+\end{proposition}
+
+\begin{proof}
+At $w=1$ we have $D_k = 1$ for all $k$, so
+$C^{\mathrm{re}} - C^{\mathrm{nr}} = (1-u)(1-\rho) + (1-u) + u - 1 = (1-u)(1-\rho) \ge 0$.
+At $w=0$, $D_k = k$, and
+$C^{\mathrm{re}} - C^{\mathrm{nr}} = (1-u)\big[(1-\rho)\gamma + 1 - (\gamma+1)\big]
+ = -(1-u)\rho\gamma < 0$.
+\end{proof}
+
+\begin{remark}[Retraction]
+\label{rem:kvreuse}
+An earlier version argued that cache reuse is the structural advantage of
+self-drafting, since skipping blocks $1..\ell$ also skips streaming their
+parameters. The reasoning is incomplete and the conclusion is wrong: reuse
+splits verification into two passes at \emph{different depths}, and in the
+memory-bound regime a pass costs a full weight stream however many positions it
+covers, so the lower blocks are paid for twice. At $u=0$, $\rho=0.25$,
+$\gamma=2$ reuse costs $2.25$ against $1.50$ without it. The genuine advantage of
+self-drafting when memory-bound is simply that there is no second model to
+stream; reuse belongs to the compute-bound case.
+\end{remark}
+
+\begin{theorem}[Self-drafting dominates]
 \label{thm:dominance}
 Fix $\gamma \ge 1$, $w \in [0,1]$, $\rho \in (0,1)$. If an external draft model
 has relative cost $c_d \ge u + (1-u)\rho$ and acceptance
 $\alpha_d \le \alpha_\ell$, then early-exit self-drafting at layer $\ell$ attains
-strictly greater speedup.
+at least as great a speedup, and strictly greater when
+$c_d > u + (1-u)\rho$.
 \end{theorem}
 
 \begin{proof}
-From \eqref{eq:cself}--\eqref{eq:cext},
-\begin{equation}
-  C_{\mathrm{ext}} - C_{\mathrm{self}}
-  = \gamma\big[c_d - u - (1-u)\rho\big] \;+\; (1-u)\rho\, D ,
-\end{equation}
-whose first term is non-negative by hypothesis and whose second is strictly
-positive. Hence $C_{\mathrm{self}} < C_{\mathrm{ext}}$, while
-$\E[Y\mid\alpha_\ell] \ge \E[Y\mid\alpha_d] > 0$ by Proposition~\ref{prop:yield}
-and monotonicity of the yield in the acceptance events.
+Comparing \eqref{eq:cext} with \eqref{eq:cnoreuse},
+$C_{\mathrm{ext}} - C^{\mathrm{nr}}_{\mathrm{self}}
+ = \gamma[c_d - u - (1-u)\rho] \ge 0$, with equality exactly when
+$c_d = u + (1-u)\rho$, and $C_{\mathrm{self}} \le C^{\mathrm{nr}}_{\mathrm{self}}$.
+Yield is non-decreasing in the acceptance events by
+Proposition~\ref{prop:yield}, so $\E[Y\mid\alpha_\ell] \ge \E[Y\mid\alpha_d] > 0$.
 \end{proof}
+
+\begin{remark}
+The strictness claimed in an earlier version came from the reuse term retracted
+in Remark~\ref{rem:kvreuse}. What survives is weak dominance. Not modelled, and
+further favouring the self-draft: an external draft occupies additional resident
+memory and requires vocabulary alignment between the two models.
+\end{remark}
 
 \begin{corollary}[The head is a hard ceiling]
 \label{cor:ceiling}
