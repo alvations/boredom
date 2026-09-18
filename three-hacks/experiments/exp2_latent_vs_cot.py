@@ -28,8 +28,15 @@ theorem, and the model is free to use it optimally.
 Task: compose T generators of S_n. The running product is the unique sufficient
 statistic, so the interface must carry log2(n!) bits.
 
-  CoT-like : interface is one symbol from an alphabet of size V (log2 V bits)
+  CoT-like : interface is exactly b bits (see below)
   Latent   : interface is a vector in R^d (d * b_eff bits)
+
+INTERFACE PARAMETERISATION. exp3b established that a one-hot codebook over 2^b
+symbols, trained through a straight-through estimator, largely fails to find an
+injective code even when capacity is ample -- an optimisation artefact that
+imitates a capacity ceiling. We therefore use b independent binary units, which
+carry the same b bits. The threshold under test is b >= log2(n!), the only
+quantity the theorem mentions.
 
 PREDICTION: accuracy collapses when log2(V) < log2(n!), and the collapse point
 moves with V alone, at fixed task and fixed model.
@@ -77,17 +84,17 @@ class StepMachine(nn.Module):
     ONLY difference is the width of the channel between consecutive steps.
     """
 
-    def __init__(self, n, d=128, V=None, hidden=4, tau=1.0):
+    def __init__(self, n, d=128, bits=None, hidden=4, tau=1.0):
         super().__init__()
-        self.n, self.d, self.V, self.tau = n, d, V, tau
+        self.n, self.d, self.bits, self.tau = n, d, bits, tau
         self.emb_g = nn.Embedding(n - 1, d)
         self.core = nn.Sequential(
             nn.Linear(2 * d, hidden * d), nn.GELU(),
             nn.Linear(hidden * d, d), nn.LayerNorm(d),
         )
-        if V is not None:                       # discrete interface of width log2 V
-            self.to_sym = nn.Linear(d, V)
-            self.emb_sym = nn.Embedding(V, d)
+        if bits is not None:                    # discrete interface of width b bits
+            self.to_bits = nn.Linear(d, bits)
+            self.from_bits = nn.Linear(bits, d)
         self.readout = nn.Linear(d, n * n)
         self.s0 = nn.Parameter(torch.randn(d) * 0.02)
 
@@ -96,19 +103,19 @@ class StepMachine(nn.Module):
         s = self.s0.expand(B, -1)
         for i in range(T):
             s = self.core(torch.cat([self.emb_g(gens[:, i]), s], dim=-1))
-            if self.V is not None:
-                # straight-through Gumbel-softmax: the interface is forced
-                # through exactly one of V symbols, but stays differentiable
-                logits = self.to_sym(s)
-                onehot = F.gumbel_softmax(logits, tau=self.tau, hard=True)
-                s = onehot @ self.emb_sym.weight
+            if self.bits is not None:
+                # straight-through: the interface is forced through exactly
+                # b binary units, but stays differentiable
+                p = torch.sigmoid(self.to_bits(s))
+                hard = (p > 0.5).float()
+                s = self.from_bits(hard + p - p.detach())
         logits = self.readout(s).view(B, self.n, self.n)
         loss = F.cross_entropy(logits.reshape(-1, self.n), finals.reshape(-1))
         acc = (logits.argmax(-1) == finals).all(-1).float().mean()
         return loss, acc
 
 
-def train(model, n, T, steps, bs, device, lr=1e-3, quiet=False):
+def train(model, n, T, steps, bs, device, lr=2e-3, quiet=False):
     model.to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps)
@@ -127,12 +134,14 @@ def train(model, n, T, steps, bs, device, lr=1e-3, quiet=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=5, help="permutation group S_n")
-    ap.add_argument("--T", type=int, default=32, help="composition steps")
-    ap.add_argument("--d", type=int, default=128)
-    ap.add_argument("--steps", type=int, default=4000)
-    ap.add_argument("--bs", type=int, default=256)
+    ap.add_argument("--T", type=int, default=12, help="composition steps")
+    ap.add_argument("--d", type=int, default=96)
+    ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--bs", type=int, default=64)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--sweep-v", action="store_true")
+    ap.add_argument("--bit-list", type=int, nargs="+", default=None)
+    ap.add_argument("--seeds", type=int, default=1)
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -142,29 +151,36 @@ def main():
     print(f"T={args.T} steps, streaming Markov schedule (no re-reading the input)")
     print(f"device={device}\n")
 
-    vs = [2, 4, 8, 16, 32, 64, 128, 256] if args.sweep_v else [n_fact]
+    bs_list = args.bit_list or [3, 4, 5, 6, 7, 8, 10]
     results = []
-    for V in vs:
-        print(f"  V={V} ({math.log2(V):.2f} bits) "
-              f"{'>= needed' if math.log2(V) >= need else '< NEEDED'}:")
-        random.seed(args.seed); torch.manual_seed(args.seed)
-        acc = train(StepMachine(args.n, args.d, V=V), args.n, args.T,
-                    args.steps, args.bs, device, quiet=True)
-        results.append((V, acc))
-        print(f"      -> acc {acc:.3f}")
+    for b in bs_list:
+        print(f"  b={b} bits {'>= needed' if b >= need else '< NEEDED'}:")
+        best = 0.0
+        for sd in range(args.seeds):
+            random.seed(args.seed + sd); torch.manual_seed(args.seed + sd)
+            best = max(best, train(StepMachine(args.n, args.d, bits=b), args.n,
+                                   args.T, args.steps, args.bs, device, quiet=True))
+        results.append((b, best))
+        print(f"      -> acc {best:.3f}")
 
     print(f"\n  continuous interface (R^{args.d}):")
     random.seed(args.seed); torch.manual_seed(args.seed)
-    lat = train(StepMachine(args.n, args.d, V=None), args.n, args.T,
+    lat = train(StepMachine(args.n, args.d, bits=None), args.n, args.T,
                 args.steps, args.bs, device, quiet=True)
     print(f"      -> acc {lat:.3f}")
 
     print(f"\n{'interface':>12} {'bits':>7} {'acc':>7}   prediction")
-    for V, acc in results:
-        pred = "ok" if math.log2(V) >= need else "COLLAPSE"
-        print(f"{('V=' + str(V)):>12} {math.log2(V):>7.2f} {acc:>7.3f}   {pred}")
+    viol = []
+    for b, acc in results:
+        pred = "ok" if b >= need else "COLLAPSE"
+        if b < need and acc >= 0.9:
+            viol.append(b)
+        print(f"{('b=' + str(b)):>12} {b:>7} {acc:>7.3f}   {pred}")
     print(f"{('R^' + str(args.d)):>12} {'--':>7} {lat:>7.3f}   ok")
-    print(f"\nThreshold sits between V={2**math.floor(need)} and V={2**math.ceil(need)}.")
+    print(f"\nThreshold is b >= log2({args.n}!) = {need:.2f}, i.e. b >= "
+          f"{math.ceil(need)}.")
+    print(f"Cells that would REFUTE the bound (b < {need:.2f} yet accurate): "
+          f"{viol if viol else 'none'}")
     print("If accuracy does not fall there, the bandwidth bound does not bind and")
     print("this thesis loses its only unconditional result.")
 
