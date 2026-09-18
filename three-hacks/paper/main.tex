@@ -1,0 +1,209 @@
+% Depth, Time, and State: Three Reductions in Autoregressive Decoding
+%
+% NeurIPS format. Drop neurips_2024.sty beside this file and switch the
+% \usepackage line below; the fallback preamble reproduces the layout closely
+% enough to review against, so the document compiles without the style file.
+\documentclass{article}
+
+% --- NeurIPS style -----------------------------------------------------------
+% \usepackage[preprint]{neurips_2024}   % <- uncomment when neurips_2024.sty is present
+\usepackage[margin=1.25in]{geometry}    % fallback; delete with the line above
+\usepackage{times}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{openproblem}[theorem]{Open Problem}
+
+\newcommand{\Vocab}{\mathcal{V}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\softmax}{\mathrm{softmax}}
+\newcommand{\Reach}{\mathrm{Reach}}
+\newcommand{\Diag}{\mathrm{Diag}}
+\newcommand{\hs}[1]{h^{(#1)}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{Depth, Time, and State:\\Three Reductions in Autoregressive Decoding}
+
+\author{%
+  Liling Tan \\
+  \texttt{alvations@gmail.com} \\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Three recurring complaints about autoregressive language models --- that
+speculative decoding needs an auxiliary draft network, that reasoning is
+externalised into emitted tokens, and that decoder-only transformers are
+elaborate recurrent networks --- are usually treated separately. We show they
+are three instances of one question: along which axis is a model permitted to
+spend \emph{serial} computation, and how does it carry state while doing so.
+We formalise each along its own axis (depth, time, state) and prove what the
+informal complaint does and does not license.
+For depth, we show speculative sampling is exact for an arbitrary draft
+distribution, so correctness imposes no constraint on the draft; we give a cost
+model interpolating between memory- and compute-bound decoding under which
+self-drafting by early exit dominates any external draft of equal relative cost,
+and lower-bound the acceptance rate by the residual tail energy.
+For time, we show the strong form of the latent-reasoning complaint is false
+under standard complexity assumptions --- serial compute is load-bearing --- but
+that a counting argument separates the \emph{media}: a chain-of-thought step
+transports at most $\log_2|\Vocab|$ bits, a latent step transports the state
+dimension. Discretisation, not serial computation, is the object of the
+complaint.
+For state, we show the transformer's recurrent form is real but nearly vacuous,
+that a constrained gated linear recurrence coincides exactly with the HMM
+forward algorithm, and --- our main negative result --- that
+\emph{diagonally}-gated linear attention, the form used by most modern
+sub-quadratic architectures, provably cannot realise a mixing HMM transition
+within a single layer. We close with a capacity lower bound that fixes what
+unbounded state is buying.
+All claims are stated to be falsifiable, and we give a protocol at $\le$1B
+parameters with pre-registered kill criteria.
+\end{abstract}
+
+\input{sections/intro}
+\input{sections/prelim}
+\input{sections/depth}
+\input{sections/time}
+\input{sections/state}
+\input{sections/unified}
+
+\bibliographystyle{plain}
+\begin{thebibliography}{20}
+
+\bibitem{leviathan2023}
+Y.~Leviathan, M.~Kalman, and Y.~Matias.
+\newblock Fast inference from transformers via speculative decoding.
+\newblock In \emph{ICML}, 2023.
+
+\bibitem{chen2023}
+C.~Chen, S.~Borgeaud, G.~Irving, J.-B. Lespiau, L.~Sifre, and J.~Jumper.
+\newblock Accelerating large language model decoding with speculative sampling.
+\newblock \emph{arXiv:2302.01318}, 2023.
+
+\bibitem{elhoushi2024}
+M.~Elhoushi et~al.
+\newblock {LayerSkip}: Enabling early exit inference and self-speculative decoding.
+\newblock In \emph{ACL}, 2024.
+
+\bibitem{zhang2023draft}
+J.~Zhang et~al.
+\newblock Draft \& verify: Lossless large language model acceleration via
+  self-speculative decoding.
+\newblock \emph{arXiv:2309.08168}, 2023.
+
+\bibitem{cai2024medusa}
+T.~Cai et~al.
+\newblock {Medusa}: Simple {LLM} inference acceleration framework with multiple
+  decoding heads.
+\newblock \emph{arXiv:2401.10774}, 2024.
+
+\bibitem{li2024eagle}
+Y.~Li et~al.
+\newblock {EAGLE}: Speculative sampling requires rethinking feature uncertainty.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem{nostalgebraist2020}
+nostalgebraist.
+\newblock Interpreting {GPT}: the logit lens.
+\newblock LessWrong, 2020.
+
+\bibitem{merrill2023}
+W.~Merrill and A.~Sabharwal.
+\newblock The parallelism tradeoff: Limitations of log-precision transformers.
+\newblock \emph{TACL}, 2023.
+
+\bibitem{merrill2024}
+W.~Merrill and A.~Sabharwal.
+\newblock The expressive power of transformers with chain of thought.
+\newblock In \emph{ICLR}, 2024.
+
+\bibitem{dehghani2019}
+M.~Dehghani, S.~Gouws, O.~Vinyals, J.~Uszkoreit, and {\L}.~Kaiser.
+\newblock Universal transformers.
+\newblock In \emph{ICLR}, 2019.
+
+\bibitem{geiping2025}
+J.~Geiping et~al.
+\newblock Scaling up test-time compute with latent reasoning: A recurrent depth
+  approach.
+\newblock \emph{arXiv:2502.05171}, 2025.
+
+\bibitem{hao2024coconut}
+S.~Hao et~al.
+\newblock Training large language models to reason in a continuous latent space.
+\newblock \emph{arXiv:2412.06769}, 2024.
+
+\bibitem{katharopoulos2020}
+A.~Katharopoulos, A.~Vyas, N.~Pappas, and F.~Fleuret.
+\newblock Transformers are {RNNs}: Fast autoregressive transformers with linear
+  attention.
+\newblock In \emph{ICML}, 2020.
+
+\bibitem{yang2024gla}
+S.~Yang, B.~Wang, Y.~Shen, R.~Panda, and Y.~Kim.
+\newblock Gated linear attention transformers with hardware-efficient training.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem{dao2024mamba2}
+T.~Dao and A.~Gu.
+\newblock Transformers are {SSMs}: Generalized models and efficient algorithms
+  through structured state space duality.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem{yang2024delta}
+S.~Yang, B.~Wang, Y.~Zhang, Y.~Shen, and Y.~Kim.
+\newblock Parallelizing linear transformers with the delta rule over sequence
+  length.
+\newblock In \emph{NeurIPS}, 2024.
+
+\bibitem{arora2023zoology}
+S.~Arora et~al.
+\newblock Zoology: Measuring and improving recall in efficient language models.
+\newblock \emph{arXiv:2312.04927}, 2023.
+
+\bibitem{jelassi2024}
+S.~Jelassi, D.~Brandfonbrener, S.~Kakade, and E.~Malach.
+\newblock Repeat after me: Transformers are better than state space models at
+  copying.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem{rabiner1989}
+L.~R. Rabiner.
+\newblock A tutorial on hidden {Markov} models and selected applications in
+  speech recognition.
+\newblock \emph{Proceedings of the IEEE}, 77(2):257--286, 1989.
+
+\bibitem{graves2016act}
+A.~Graves.
+\newblock Adaptive computation time for recurrent neural networks.
+\newblock \emph{arXiv:1603.08983}, 2016.
+
+\end{thebibliography}
+\end{document}

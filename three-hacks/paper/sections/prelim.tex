@@ -1,0 +1,162 @@
+\section{Preliminaries}
+\label{sec:prelim}
+
+\subsection{Residual-stream language models}
+
+\begin{definition}[Residual-stream language model]
+\label{def:model}
+A \emph{residual-stream language model} over a finite vocabulary $\Vocab$ is a
+tuple $M = (E, (F_\ell)_{\ell=1}^{L}, N, W_U)$ with embedding
+$E : \Vocab \to \R^{d}$, causal blocks
+$F_\ell : (\R^{d})^{*} \to \R^{d}$, a normalisation map
+$N : \R^d \to \R^d$, and unembedding $W_U \in \R^{|\Vocab| \times d}$.
+On a prefix $x = x_1 \dots x_T \in \Vocab^{*}$ the model computes, for
+$t \le T$,
+\begin{equation}
+  \hs{0}_t = E(x_t) + \mathrm{pos}(t),
+  \qquad
+  \hs{\ell}_t = \hs{\ell-1}_t + F_\ell\!\left(\hs{\ell-1}_{1:t}\right),
+  \quad \ell = 1,\dots,L ,
+  \label{eq:residual}
+\end{equation}
+where $F_\ell$ depends on positions $\le t$ only (causality). Its output
+distribution is $p_M(\cdot \mid x) = \softmax\!\left(W_U N(\hs{L}_T)\right)$.
+\end{definition}
+
+We write $L$ for depth, $d$ for width, $V = |\Vocab|$, and suppress the position
+subscript when it is the final one. Throughout, $\TV(p,q) = \tfrac12\|p-q\|_1$
+and $\|W\|_{2,\infty} = \max_i \|W_{i,:}\|_2$ is the largest row norm.
+
+\begin{definition}[Layer-$\ell$ readout]
+\label{def:logitlens}
+For $\ell \in \{0,\dots,L\}$ the \emph{layer-$\ell$ readout} of $M$ is
+\begin{equation}
+  p_\ell(\cdot \mid x) = \softmax\!\left(W_U N(\hs{\ell})\right) .
+\end{equation}
+\end{definition}
+
+Definition~\ref{def:logitlens} applies the trained unembedding to an
+intermediate residual state, which is the logit lens of
+\cite{nostalgebraist2020}. By construction $p_L = p_M$; no claim is made that
+$p_\ell$ is calibrated for $\ell < L$, and indeed Remark~\ref{rem:offdist} is
+that it is not.
+
+\begin{definition}[Residual tail energy]
+\label{def:tail}
+The \emph{tail energy} of $M$ at layer $\ell$ on prefix $x$ is
+\begin{equation}
+  T_\ell(x) \;=\; \Big\| \textstyle\sum_{k=\ell+1}^{L} F_k(\hs{k-1}) \Big\|_2
+  \;=\; \big\| \hs{L} - \hs{\ell} \big\|_2 ,
+\end{equation}
+the norm of the residual contribution the model has yet to make after layer
+$\ell$. The second equality is immediate by telescoping \eqref{eq:residual}.
+\end{definition}
+
+\subsection{A cost model for autoregressive decoding}
+
+Decoding cost is dominated by different resources in different regimes, and
+conflating them is the most common error in speculative-decoding accounting.
+Evaluating a block at $m$ positions requires streaming its parameters from
+memory once, regardless of $m$, and performing work proportional to $m$. We
+therefore make the regime an explicit parameter.
+
+\begin{definition}[Interpolated cost model]
+\label{def:cost}
+Fix $w \in [0,1]$. The cost of evaluating $\Delta$ consecutive blocks of $M$ at
+$m$ positions, in units of one full forward pass at a single position, is
+\begin{equation}
+  C_w(\Delta, m) \;=\; \frac{\Delta}{L}\Big( w + (1-w)\, m \Big) .
+  \label{eq:cost}
+\end{equation}
+The parameter $w$ is the \emph{memory-bound fraction}: $w=1$ is the strictly
+memory-bound regime (cost is weight streaming alone, independent of $m$),
+$w=0$ the strictly compute-bound regime (cost is proportional to $m$).
+Batch-size-one autoregressive decoding operates at $w$ close to $1$; prefill and
+large-batch serving at $w$ close to $0$. Note $C_w(\Delta,1) = \Delta/L$ for
+every $w$.
+\end{definition}
+
+\begin{remark}
+Equation~\eqref{eq:cost} is deliberately the simplest interpolation with the
+right two endpoints. It ignores attention's quadratic term and KV-cache traffic,
+both of which grow with context and neither of which affects the comparisons in
+Section~\ref{sec:depth}, since they are incurred identically by every scheme
+considered there.
+\end{remark}
+
+\subsection{Speculative sampling}
+
+\begin{definition}[Speculative round]
+\label{def:specround}
+Let $p$ be a target distribution and $q$ a \emph{draft} distribution on
+$\Vocab$. A \emph{speculative step} draws $y \sim q$, accepts it with
+probability $\min\{1, p(y)/q(y)\}$, and on rejection draws instead from the
+residual
+\begin{equation}
+  r(\cdot) \;=\; \frac{\big(p(\cdot) - q(\cdot)\big)_+}{\big\|(p-q)_+\big\|_1},
+  \label{eq:residualdist}
+\end{equation}
+where $(z)_+ = \max\{z,0\}$. A \emph{round with lookahead $\gamma$} performs
+$\gamma$ such steps against drafts for successive positions, stopping at the
+first rejection, and emits every accepted token plus one token drawn from the
+target (or from \eqref{eq:residualdist} on rejection).
+\end{definition}
+
+Definition~\ref{def:specround} leaves $r$ undefined when $\|(p-q)_+\|_1 = 0$,
+which occurs exactly when $q = p$; in that case acceptance is certain and $r$ is
+never sampled, so we adopt the convention $r = p$ there.
+
+\subsection{Chain-of-thought and latent recurrence}
+
+The two computational media compared in Section~\ref{sec:time} are separated
+here so that the comparison in that section is between definitions rather than
+between implementations.
+
+\begin{definition}[Chain-of-thought trajectory]
+\label{def:cot}
+Fix a model $M$ and a prompt $x \in \Vocab^{*}$. An \emph{$n$-step
+chain-of-thought trajectory} is the sequence of emitted tokens
+$y_{1:n} \in \Vocab^{n}$ produced by $y_i \sim p_M(\cdot \mid x\, y_{1:i-1})$,
+together with the induced internal states. The \emph{configuration} after step
+$i$ is the tuple of all activations and cache entries of $M$ on the input
+$x\,y_{1:i}$.
+\end{definition}
+
+\begin{definition}[Latent-recurrent computation]
+\label{def:latent}
+An \emph{$n$-step latent-recurrent computation} of width $d$ is the sequence
+$s_1,\dots,s_n$ given by $s_0 = \iota(x)$ and $s_{i} = G(s_{i-1})$ for a map
+$G : \R^{d} \to \R^{d}$, with the output read off by a decoder $\pi(s_n)$. Its
+\emph{configuration} after step $i$ is $s_i$.
+\end{definition}
+
+\begin{definition}[Reachable configuration set]
+\label{def:reach}
+For a fixed prompt $x$ and a computational medium, $\Reach_n(x)$ denotes the set
+of configurations reachable after exactly $n$ steps, as the trajectory ranges
+over all its allowed realisations.
+\end{definition}
+
+Definition~\ref{def:reach} is deliberately a set, not a distribution. Every
+separation we prove in Section~\ref{sec:time} is a cardinality statement about
+$\Reach_n$, and none requires a notion of entropy; we avoid Shannon information
+entirely there, because the quantity that binds is how many configurations a
+medium can \emph{distinguish}, not how many bits it carries on average.
+
+\subsection{Recurrent form}
+
+\begin{definition}[Recurrent form and state dimension]
+\label{def:recurrent}
+A causal sequence model is in \emph{recurrent form} if there are maps $f, g$ and
+states $S_t$ with
+\begin{equation}
+  S_t = f(S_{t-1}, x_t), \qquad o_t = g(S_t, x_t) .
+\end{equation}
+Its \emph{state dimension} $\dim(S_t)$ is the number of scalars in $S_t$. The
+form is \emph{bounded} if $\sup_t \dim(S_t) < \infty$ and \emph{growing}
+otherwise.
+\end{definition}
+
+The distinction in Definition~\ref{def:recurrent} between bounded and growing is
+the only one that carries content; Remark~\ref{rem:vacuous} makes precise the
+sense in which the existence of \emph{some} recurrent form is trivial.

@@ -1,0 +1,272 @@
+\section{State: recurrent form, the HMM reading, and its limits}
+\label{sec:state}
+
+The complaint addressed here is that decoder-only transformers are ``just gated
+RNNs'', and that constraining such an RNN should yield HMM-like decoding. We
+find the first half true but nearly empty as usually stated
+(Section~\ref{sec:state-form}), the HMM identity true but \emph{not} a statement
+about linear attention (Section~\ref{sec:state-hmm}), and we prove that the
+missing bridge cannot be built (Theorem~\ref{thm:noembed}). We close with the
+capacity bound that says what unbounded state buys
+(Theorem~\ref{thm:recall}).
+
+\subsection{The recurrent form is real, and almost vacuous}
+\label{sec:state-form}
+
+\begin{remark}[The trivial recurrence]
+\label{rem:vacuous}
+Every causal sequence model admits a growing-state recurrent form: take
+$S_t = x_{1:t}$ and $o_t = M(S_t)$. So the assertion ``a decoder-only
+transformer is a recurrent network with growing state'' carries exactly the
+content of ``a decoder-only transformer is causal''. Worse for the usual
+framing, the trivial state is \emph{smaller} than the KV cache --- $t\log_2 V$
+bits against $\Theta(t\,d\,L)$ scalars --- so a transformer does not
+\emph{compress} its history into its state; it expands it.
+\end{remark}
+
+The content is therefore not existence but cost, and the theorem should be
+stated that way.
+
+\begin{theorem}[KV cache as an incrementally maintainable sufficient statistic]
+\label{thm:kvform}
+Let $M$ be a decoder-only transformer with $L$ layers, width $d$, and $H_{kv}$
+key-value heads of dimension $d_h$. Put
+$S_t = \big(K^{(1:L)}_{1:t}, V^{(1:L)}_{1:t}\big)$. Then
+\begin{enumerate}
+  \item[(i)] \emph{(Recurrence)} there exist $f,g$ with $S_t = f(S_{t-1},x_t)$,
+        $o_t = g(S_t,x_t)$;
+  \item[(ii)] \emph{(Sufficiency)} $o_t$ depends on $x_{1:t-1}$ only through $S_{t-1}$;
+  \item[(iii)] \emph{(Incrementality)} $f$ appends $2LH_{kv}d_h$ scalars to
+        $S_{t-1}$ and modifies no existing entry; $f$ and $g$ together cost
+        $\Theta\!\left(Ld^{2} + L\,t\,H_{kv}d_h\right)$ operations, linear in $t$;
+  \item[(iv)] \emph{(Size)} $\dim(S_t) = 2\,t\,L\,H_{kv}d_h$.
+\end{enumerate}
+The trivial recurrence of Remark~\ref{rem:vacuous} satisfies (i) and (ii) with a
+smaller state but costs $\Theta(L t^{2} d)$ per step.
+\end{theorem}
+
+\begin{proof}
+For (i), causal masking gives that layer-$\ell$ outputs at position $t$ depend on
+positions $<t$ only through $K^{(\ell)},V^{(\ell)}$; but the map is not
+componentwise, since for $\ell \ge 2$ the pair $(k^{(\ell)}_t, v^{(\ell)}_t)$ is
+a function of $\hs{\ell-1}_t$ and hence of $S_{t-1}$. Define $f$ as the $L$-fold
+composition that, for $\ell = 1,\dots,L$, forms
+$(q,k,v)^{(\ell)}_t$ from $N(\hs{\ell-1}_t)$, appends $(k,v)^{(\ell)}_t$ to
+$S^{(\ell)}_{t-1}$, and sets
+$\hs{\ell}_t = \hs{\ell-1}_t + \mathrm{Attn}(q^{(\ell)}_t, S^{(\ell)}_t) + \mathrm{MLP}(\cdot)$.
+This is a finite composition of maps of $(S_{t-1},x_t)$, giving (i), and (ii) is
+immediate from it. For (iii): the projections cost $\Theta(d^2)$ per layer; the
+readout at layer $\ell$ is a dot product against $t$ cached keys, costing
+$\Theta(t H_{kv} d_h)$; no cached entry is modified because $(k_s,v_s)^{(\ell)}$
+depends only on $\hs{\ell-1}_s$ for $s<t$. Summing over $L$ layers gives the
+bound. (iv) is counting, and the contrast clause is the cost of re-running the
+forward pass on a length-$t$ prefix.
+\end{proof}
+
+\begin{remark}
+Clause (iii) is the only one distinguishing the KV cache from storing the raw
+tokens, and it is what the informal claim omits. Under grouped-query attention
+the size in (iv) carries an extra factor $H_{kv}/H$, typically $1/8$ to $1/16$,
+which is directly in competition with the capacity question of
+Theorem~\ref{thm:recall}. We also note that ``is an RNN'' is an abuse: an RNN
+iterates a \emph{single} map on a \emph{fixed} state space, whereas here the
+state space grows with $t$ and $f$ is a family of maps with differing domains.
+\end{remark}
+
+\subsection{Linear attention}
+
+\begin{theorem}[Linear attention is a bounded-state recurrence]
+\label{thm:linattn}
+Let $\varphi : \R^{d} \to \R^{d_k}_{\ge 0}$ and set $S_0 = 0 \in \R^{d_k \times d_v}$,
+$z_0 = 0 \in \R^{d_k}$. Then attention with kernel
+$\exp(\langle q,k\rangle) \mapsto \langle \varphi(q), \varphi(k)\rangle$ satisfies
+\begin{equation}
+  S_t = S_{t-1} + \varphi(k_t) v_t^{\top},
+  \qquad
+  z_t = z_{t-1} + \varphi(k_t),
+  \qquad
+  o_t = \frac{\varphi(q_t)^{\top} S_t}{\varphi(q_t)^{\top} z_t},
+  \label{eq:linattn}
+\end{equation}
+a recurrence in the sense of Definition~\ref{def:recurrent} with bounded state
+dimension $d_k d_v + d_k$.
+\end{theorem}
+
+\begin{proof}
+Unrolling \eqref{eq:linattn} gives $S_t = \sum_{s\le t}\varphi(k_s)v_s^\top$ and
+$z_t = \sum_{s \le t}\varphi(k_s)$, so
+$o_t = \sum_{s\le t} \langle \varphi(q_t),\varphi(k_s)\rangle v_s \,/\,
+       \sum_{s\le t} \langle \varphi(q_t),\varphi(k_s)\rangle$,
+which is causal attention with the stated kernel. Non-negativity of $\varphi$
+ensures the denominator is a sum of non-negative terms, so it neither vanishes
+by cancellation nor changes sign, and $o_t$ is a convex combination of
+$\{v_s\}_{s \le t}$.
+\end{proof}
+
+\begin{remark}[Gating, and a correction]
+\label{rem:gating}
+The gated form $S_t = \Diag(a_t)S_{t-1} + \varphi(k_t)v_t^\top$ requires care:
+decaying $S$ while leaving $z_t$ undecayed drives $o_t \to 0$, so either $z$ is
+gated identically or --- as in practice --- the explicit normaliser is dropped in
+favour of output normalisation. Further, the structured-masked-attention duality
+of \cite{dao2024mamba2} applies to \emph{scalar} gates $a_t I$: unrolling the
+vector-gated recurrence gives attention weight
+$\langle \varphi(q_t) \odot A_{t,s}, \varphi(k_s)\rangle$, which factors as a
+scalar mask times $\langle\varphi(q_t),\varphi(k_s)\rangle$ if and only if $a_t$
+is a multiple of the identity. Vector gating is strictly more general and has no
+such dual.
+\end{remark}
+
+\subsection{The HMM identity, stated correctly}
+\label{sec:state-hmm}
+
+\begin{theorem}[Gated dense recurrence and the forward algorithm]
+\label{thm:hmm}
+Let $A \in \R^{m\times m}$, $b : \mathcal{O} \to \R^{m}$, and define
+\begin{equation}
+  s_1 = \pi \odot b(o_1), \qquad
+  s_t = \big(A^{\top} s_{t-1}\big) \odot b(o_t) \quad (t \ge 2).
+  \label{eq:hmmrec}
+\end{equation}
+Then:
+\begin{enumerate}
+  \item[(i)] \emph{(Algebraic identity; no hypotheses)} \eqref{eq:hmmrec} is
+        termwise identical to the forward recursion
+        $\alpha_t(j) = \big[\sum_i \alpha_{t-1}(i)A_{ij}\big]B_j(o_t)$ with
+        $b_j(o) = B_j(o)$.
+  \item[(ii)] \emph{(Semantics)} if additionally $\pi$ is a distribution, $A$ is
+        row-stochastic and $B_j(\cdot)$ are emission distributions, then
+        $s_t(j) = \Prob\!\left[o_{1:t},\, z_t = j\right]$ and
+        $\sum_j s_t(j) = \Prob[o_{1:t}]$.
+  \item[(iii)] \emph{(Viterbi)} if $A, b \ge 0$, replacing $A^\top s$ by
+        $\big(\max_i A_{ij}s(i)\big)_j$ yields
+        $s_t(j) = \max_{z_{1:t-1}} \Prob[o_{1:t}, z_{1:t-1}, z_t = j]$; recovering
+        the maximising path additionally requires back-pointers.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(i) Coordinate $j$ of $A^\top s_{t-1}$ is $\sum_i s_{t-1}(i)A_{ij}$, and the
+Hadamard product multiplies it by $b_j(o_t)$; this is a rearrangement of a
+matrix-vector product and uses no sign or normalisation hypothesis. (ii) By
+induction: the base case $s_1(j) = \pi_j B_j(o_1) = \Prob[o_1, z_1 = j]$ uses the
+standard convention that $\pi$ is the law of $z_1$; the step is the law of total
+probability conditioned on $z_{t-1}$. (iii) The $(\max,\times)$ semiring
+distributes over $\R_{\ge 0}$, which is where non-negativity enters and is the
+only place it is needed; the induction is otherwise identical.
+\end{proof}
+
+\begin{remark}[Which hypotheses do what]
+Part (i) needs nothing; row-stochasticity buys only the probabilistic reading in
+(ii); non-negativity is load-bearing only for (iii). Note also the base case:
+initialising with $s_0 = \pi$ and applying \eqref{eq:hmmrec} at $t=1$ applies one
+spurious transition, and is \emph{not} equivalent to \eqref{eq:hmmrec} as stated.
+\end{remark}
+
+\subsection{The bridge does not exist}
+
+It is tempting to read Theorem~\ref{thm:hmm} as a constrained special case of
+gated linear attention (Theorem~\ref{thm:linattn}), i.e.\ to claim that making a
+gated linear RNN's state non-negative and its gate stochastic turns it into an
+HMM. It does not, and the obstruction is structural rather than technical.
+
+\begin{theorem}[No embedding of the forward algorithm into gated linear attention]
+\label{thm:noembed}
+Let $\Phi(S) = \Diag(a)S + C$ be one step of the gated linear-attention
+recurrence with any gate $a$ and any input-determined $C$, and let
+$\Psi_o(s) = \Diag(b(o))A^{\top}s$ be one step of \eqref{eq:hmmrec}. For a
+generic HMM $(A,B)$ with $A$ strictly positive there is no injective linear
+$\iota : \R^{m} \to \R^{d_k \times d_v}$ and no choice of gates and inputs
+satisfying $\Phi \circ \iota = \iota \circ \Psi_o$ for all $o$.
+\end{theorem}
+
+\begin{proof}
+Two independent obstructions.
+
+\emph{(a) Support monotonicity.} For any $S,S'$ we have
+$\Phi(S) - \Phi(S') = \Diag(a)(S-S')$, since $C$ does not depend on the state.
+Hence the set of rows on which two trajectories differ is non-increasing along
+the recurrence, for every gate and every input. By contrast, taking
+$s - s' = e_r$ gives $\Psi_o(s) - \Psi_o(s') = \big(b_j(o)A_{rj}\big)_j$, whose
+support is $\{j : A_{rj} > 0,\, b_j(o) > 0\}$ --- all of $[m]$ for strictly
+positive $A$ and $b$. Support strictly grows, so no coordinatewise
+identification of the HMM state with rows of $S$ can be equivariant.
+
+\emph{(b) Simultaneous diagonalisability.} Allowing an arbitrary injective
+linear $\iota$, the conjugacy $\Phi\circ\iota = \iota\circ\Psi_o$ restricted to
+$\operatorname{im}\iota$ states that every $\Psi_o$ is diagonal in the single
+basis $\iota(e_1),\dots,\iota(e_m)$. Simultaneously diagonalisable matrices
+commute, so this forces $[\Psi_o, \Psi_{o'}] = 0$ for all pairs $o,o'$, which
+fails for generic $(A,B)$. Hence no such $\iota$ exists.
+\end{proof}
+
+\begin{proposition}[The common generalisation]
+\label{prop:affine}
+Call $s_t = M(u_t)s_{t-1} + c(u_t)$, $s_t \in \R^{N}$, an \emph{input-controlled
+affine recurrence}. Gated linear attention is the case
+$M(u_t) = \Diag(a_t)\otimes I_{d_v}$ --- block diagonal, no mixing across the
+$d_k$ index --- with $c(u_t) = \mathrm{vec}(\varphi(k_t)v_t^\top)$; the forward
+algorithm is the case $M(o_t) = \Diag(b(o_t))A^\top$ dense with $c \equiv 0$.
+These are two incomparable cases, not a case and its restriction.
+\end{proposition}
+
+\begin{remark}[Consequence for the complaint]
+\label{rem:thesis3}
+A gate \emph{is} a diagonal matrix; constraining its entries to be non-negative
+and to sum to one yields a diagonal stochastic matrix, that is, the identity ---
+an HMM whose hidden state never moves. The transition matrix must be
+\emph{added} to the architecture, not recovered by constraining something already
+present. Diagonality is not incidental: it is precisely what lets
+\cite{yang2024gla,dao2024mamba2} evaluate the recurrence as an associative scan.
+Architectures whose state transition is dense, such as the delta rule's
+$I - \beta_t k_tk_t^\top$ \cite{yang2024delta}, are the ones for which an HMM
+reading is even a candidate. The informal thesis --- ``constrain a gated linear
+RNN and you get HMM-like decoding'' --- is therefore false as stated, and the
+defensible version is that HMM-like decoding requires giving up the diagonal
+structure that makes these models fast.
+\end{remark}
+
+\subsection{What unbounded state buys}
+
+\begin{definition}[$m$-bit statefulness]
+\label{def:mbit}
+A sequence model is \emph{$m$-bit stateful} if for every $t$ its state $S_t$
+takes values in a set of cardinality at most $2^{m}$, and its emissions after
+time $t$ are a deterministic function of $S_t$ and subsequent inputs.
+\end{definition}
+
+The finiteness in Definition~\ref{def:mbit} is essential and is exactly what the
+informal version of the next result omits: without it the bound is simply false,
+since $s_t = s_{t-1}/2 + x_t/2$ stores an unbounded binary expansion in one real
+number and can be decoded indefinitely by $x \mapsto \lfloor 2s\rfloor$,
+$s \mapsto 2s - \lfloor 2s \rfloor$.
+
+\begin{theorem}[Recall lower bound]
+\label{thm:recall}
+Let a model be $m$-bit stateful and suppose that for every
+$c \in \Vocab^{n}$, when presented with a context containing $c$ at a designated
+location followed by a retrieval cue, it emits $c$ exactly. Then
+$m \ge n\log_2 V$. If instead it succeeds with probability $1-\delta$ over a
+uniform $c$, then $m \ge (1-\delta)\,n\log_2 V - 1$.
+\end{theorem}
+
+\begin{proof}
+For the exact case, let $S(c)$ be the state reached after the context containing
+$c$ and before the cue. Emissions after that point are a function of $S$ and the
+cue alone, so $c \mapsto S(c)$ must be injective on $\Vocab^n$; hence
+$2^{m} \ge V^{n}$. For the probabilistic case, let $C$ be uniform on $\Vocab^n$
+and $\hat C$ the emitted block, a function of $S$. By Fano's inequality
+$H(C \mid S) \le 1 + \delta\, n\log_2 V$, while
+$H(C\mid S) \ge H(C) - H(S) \ge n\log_2 V - m$; rearranging gives the claim.
+\end{proof}
+
+\begin{remark}
+The order of quantifiers matters: the block contents must be fixed before the
+state forms, and if the retrieval \emph{location} is also adversarial it must be
+chosen afterwards, in which case the bound becomes $T\log_2 V$ for a
+length-$T$ context. The converse --- that a KV-cache transformer achieves recall
+--- is not a corollary of this lower bound but a separate constructive fact
+\cite{jelassi2024,arora2023zoology}. Finally, the Fano form predicts
+\emph{graceful} degradation past the capacity threshold rather than a sharp
+cliff, which is the prediction our window-attention probe should be read against.
+\end{remark}

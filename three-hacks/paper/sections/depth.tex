@@ -1,0 +1,415 @@
+\section{Depth: the model as its own draft}
+\label{sec:depth}
+
+The complaint addressed in this section is that speculative decoding
+\cite{leviathan2023,chen2023} requires a second, separately trained network. We
+show that correctness never required one (Theorem~\ref{thm:exact}), that the
+acceptance rate of an early-exit draft is controlled by a measurable property of
+the residual stream (Theorem~\ref{thm:accept}), and that under the cost model of
+Definition~\ref{def:cost} self-drafting strictly dominates any external draft of
+equal relative cost, in \emph{every} regime $w$ (Theorem~\ref{thm:dominance}).
+
+\subsection{Correctness does not constrain the draft}
+
+\begin{theorem}[Exactness for an arbitrary draft]
+\label{thm:exact}
+Let $p, q$ be any distributions on a common countable alphabet $\Vocab$, with
+the convention $r = p$ when $q = p$. Then the output of a speculative step
+(Definition~\ref{def:specround}) is distributed exactly as $p$, and the
+acceptance probability is
+\begin{equation}
+  \Prob[\text{accept}] \;=\; \sum_{x} \min\{p(x), q(x)\} \;=\; 1 - \TV(p,q) .
+  \label{eq:alpha}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Fix $x \in \Vocab$. The token $x$ is emitted either by being drawn from $q$ and
+accepted, or by being drawn from the residual \eqref{eq:residualdist} after a
+rejection. The first event has probability
+$q(x)\min\{1, p(x)/q(x)\} = \min\{p(x), q(x)\}$, with the convention that the
+term is $0$ when $q(x) = 0$. Summing over $x$,
+\begin{equation}
+  \Prob[\text{accept}] = \sum_x \min\{p(x),q(x)\}
+  = \sum_x \Big( p(x) - (p(x)-q(x))_+ \Big)
+  = 1 - \big\|(p-q)_+\big\|_1 ,
+\end{equation}
+so $\Prob[\text{reject}] = \|(p-q)_+\|_1$, and the second event has probability
+$\|(p-q)_+\|_1 \cdot (p(x)-q(x))_+ / \|(p-q)_+\|_1 = (p(x)-q(x))_+$. Hence
+\begin{equation}
+  \Prob[\text{emit } x] = \min\{p(x),q(x)\} + (p(x)-q(x))_+ = p(x),
+\end{equation}
+using $\min\{a,b\} + (a-b)_+ = a$. Finally
+$\sum_x \min\{p,q\} = 1 - \tfrac12\|p-q\|_1$ follows from
+$\min\{a,b\} = \tfrac12(a + b - |a-b|)$ and $\sum_x p = \sum_x q = 1$.
+No support hypothesis is required: when $q(x) = 0 < p(x)$ the token is
+unreachable by acceptance, contributes $0$ to it, and is supplied by the residual
+branch with exactly the right mass $(p(x)-q(x))_+ = p(x)$.
+\end{proof}
+
+\begin{remark}[The draft is a free parameter]
+\label{rem:free}
+Theorem~\ref{thm:exact} places \emph{no} condition on $q$ whatsoever: $q$ may be a
+smaller model, a layer-$\ell$ readout of $M$ itself
+(Definition~\ref{def:logitlens}), an $n$-gram table, or noise. The output
+distribution is $p$ regardless, and only the \emph{rate}
+\eqref{eq:alpha} changes. Consequently no argument from correctness supports
+maintaining a separate draft network; the entire design question is the ratio of
+acceptance to cost, which is what Section~\ref{sec:depth-cost} formalises.
+\end{remark}
+
+\subsection{Acceptance is controlled by residual tail energy}
+
+\begin{lemma}[Softmax is $\TV$-Lipschitz in the spread seminorm]
+\label{lem:softmax}
+For $z \in \R^{V}$ write $\mathrm{spr}(z) = \max_j z_j - \min_j z_j$. Then for all
+$u,v \in \R^{V}$, with $\sigma = \softmax$,
+\begin{equation}
+  \TV\big(\sigma(u), \sigma(v)\big) \;\le\; 1 - e^{-\mathrm{spr}(u-v)}
+  \;\le\; 1 - e^{-2\|u-v\|_\infty} .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+First suppose $\varepsilon = \|u-v\|_\infty$. For every $i$,
+$\sigma(u)_i/\sigma(v)_i = e^{u_i-v_i}\sum_j e^{v_j} / \sum_j e^{u_j}$, and since
+$|u_j-v_j|\le\varepsilon$ for all $j$ we get
+$e^{-\varepsilon}\sum_j e^{v_j} \le \sum_j e^{u_j} \le e^{\varepsilon}\sum_j e^{v_j}$
+and $e^{u_i-v_i}\in[e^{-\varepsilon},e^{\varepsilon}]$. Multiplying,
+$\sigma(u)_i \ge e^{-2\varepsilon}\sigma(v)_i$, so by
+$\TV(p,q) = \sum_i (q_i-p_i)_+$,
+\begin{equation}
+  \TV(\sigma(u),\sigma(v)) = \sum_i\big(\sigma(v)_i-\sigma(u)_i\big)_+
+  \le \sum_i \sigma(v)_i\big(1-e^{-2\varepsilon}\big) = 1-e^{-2\varepsilon}.
+  \label{eq:supbound}
+\end{equation}
+Now sharpen using shift invariance. Softmax satisfies
+$\sigma(u) = \sigma(u + c\mathbf{1})$ for every $c\in\R$, so with
+$z = u-v$, $s = \mathrm{spr}(z)$ and $c = -\tfrac12(\max_j z_j + \min_j z_j)$ we
+have $\sigma(u) = \sigma(v + (z + c\mathbf{1}))$ and
+$\|z + c\mathbf{1}\|_\infty = s/2$. Applying \eqref{eq:supbound} with
+$\varepsilon = s/2$ gives $\TV \le 1 - e^{-s}$. Finally
+$s \le 2\|z\|_\infty$.
+\end{proof}
+
+\begin{remark}
+The sup-norm form \eqref{eq:supbound} is the one usually written down, but
+$\|u-v\|_\infty$ is not shift invariant while $\TV(\sigma(u),\sigma(v))$ is, so it
+is slack by up to a factor of two --- an artificial factor that would otherwise
+propagate into every exponent below.
+\end{remark}
+
+\begin{lemma}[Sharp bound for normalisation]
+\label{lem:sphere}
+For all non-zero $a,b \in \R^{d}$,
+\begin{equation}
+  \Big\| \frac{a}{\|a\|} - \frac{b}{\|b\|} \Big\|
+  \;\le\; \frac{2\,\|a-b\|}{\|a\| + \|b\|} .
+\end{equation}
+Consequently, for RMSNorm $N(h) = \sqrt d\, \Diag(g)\, h/\|h\|$,
+\begin{equation}
+  \big\|N(h) - N(h')\big\|
+  \;\le\; \frac{2\sqrt d\,\|g\|_\infty}{\|h\| + \|h'\|}\,\big\|h-h'\big\| .
+  \label{eq:normbound}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Put $s = \|a\|$, $t = \|b\|$ and $c = \langle a,b\rangle/(st) \in [-1,1]$. The
+squared left side is $2-2c$ and the squared right side is
+$4(s^2+t^2-2stc)/(s+t)^2$. Their difference, after multiplying by $(s+t)^2>0$, is
+\begin{align}
+  4(s^2+t^2-2stc) - (2-2c)(s+t)^2
+  &= 2s^2 + 2t^2 - 4st - 4stc + 2c s^2 + 2c t^2 \notag\\
+  &= 2(s-t)^2 + 2c(s-t)^2 \;=\; 2(1+c)(s-t)^2 \;\ge\; 0,
+\end{align}
+since $c \ge -1$. The RMSNorm form follows from
+$N(h)-N(h') = \sqrt d\,\Diag(g)\big(h/\|h\| - h'/\|h'\|\big)$ and
+$\|\Diag(g)z\| \le \|g\|_\infty\|z\|$.
+\end{proof}
+
+\begin{remark}
+Lemma~\ref{lem:sphere} is an exact inequality between the two endpoints and
+requires no Lipschitz hypothesis. This matters: a bound of the form ``$N$ is
+$\kappa$-Lipschitz on a region containing $\hs{\ell}$ and $\hs{L}$'' is vacuous
+as usually stated, since a two-point set admits every constant, and repairing it
+requires a convex region whose distance to the origin --- not the endpoint norms
+--- sets the constant.
+\end{remark}
+
+\begin{theorem}[Acceptance lower bound]
+\label{thm:accept}
+Let $\alpha_\ell = 1 - \TV(p_\ell,p_L)$ be the acceptance rate of the layer-$\ell$
+readout used as a draft for $M$, let $T_\ell$ be the tail energy
+(Definition~\ref{def:tail}), let $N$ be RMSNorm with gain $g$, and define the
+\emph{unembedding diameter}
+\begin{equation}
+  D_U \;=\; \max_{i,j} \big\| (W_U)_{i,:} - (W_U)_{j,:} \big\|_2
+  \;\le\; 2\|W_U\|_{2,\infty} .
+\end{equation}
+Then
+\begin{equation}
+  \alpha_\ell \;\ge\;
+  \exp\!\left( - \frac{2\sqrt d\,\|g\|_\infty\, D_U\, T_\ell}
+                     {\|\hs{\ell}\|_2 + \|\hs{L}\|_2} \right) .
+  \label{eq:acceptbound}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Write $D = N(\hs{\ell}) - N(\hs{L})$ and $w_i = (W_U)_{i,:}$, so that the logit
+difference has coordinates $\langle w_i, D\rangle$. By
+Lemma~\ref{lem:softmax} it suffices to bound the spread:
+\begin{equation}
+  \mathrm{spr}\big(W_U D\big)
+  = \max_{i,j} \langle w_i - w_j,\, D\rangle
+  \le \max_{i,j}\|w_i - w_j\|\,\|D\|
+  = D_U \|D\| ,
+\end{equation}
+by Cauchy--Schwarz. By Lemma~\ref{lem:sphere} applied to
+$h = \hs{\ell}$, $h' = \hs{L}$ and Definition~\ref{def:tail},
+$\|D\| \le 2\sqrt d\,\|g\|_\infty T_\ell / (\|\hs{\ell}\| + \|\hs{L}\|)$.
+Combining and using $\alpha_\ell \ge e^{-\mathrm{spr}}$ gives the claim.
+\end{proof}
+
+\begin{remark}[Strictly stronger than the sup-norm form]
+Bound \eqref{eq:acceptbound} improves the naive estimate on both factors: $D_U$
+replaces $2\|W_U\|_{2,\infty}$ because only \emph{differences} of unembedding
+rows affect a softmax, and $\|\hs{\ell}\|+\|\hs{L}\|$ replaces a single endpoint
+norm. It is also scale-free, as it must be, since $N$ discards the scale of its
+argument.
+\end{remark}
+
+\begin{proposition}[Unconditional subspace refinement]
+\label{prop:rank}
+Let $P$ be any orthogonal projector and $Q = I - P$. Then
+\begin{equation}
+  \alpha_\ell \ge \exp\big(-M_P(D)\big),
+  \qquad
+  M_P(D) = \max_{i,j}\Big( \|P(w_i-w_j)\|\,\|PD\| + \|Q(w_i-w_j)\|\,\|QD\| \Big),
+\end{equation}
+and $M_P(D) \le D_U\|D\|$ always, so this is never worse than
+Theorem~\ref{thm:accept}.
+\end{proposition}
+
+\begin{proof}
+Orthogonality gives
+$\langle w_i-w_j, D\rangle = \langle P(w_i-w_j), PD\rangle + \langle Q(w_i-w_j), QD\rangle$,
+and Cauchy--Schwarz on each term gives the bound on the spread. For the
+comparison, apply Cauchy--Schwarz in $\R^{2}$ to the vectors
+$(\|P(w_i-w_j)\|, \|Q(w_i-w_j)\|)$ and $(\|PD\|,\|QD\|)$, whose norms are
+$\|w_i-w_j\|$ and $\|D\|$ respectively.
+\end{proof}
+
+\begin{remark}[Why the one-term version fails]
+\label{rem:onetermfails}
+It is tempting to drop the $Q$ term, claiming that if the tail concentrates in
+$\operatorname{im}P$ then $\mathrm{spr} \le A_P\|D\|$ with
+$A_P = \max_{i,j}\|P(w_i-w_j)\|$. This is \emph{false} in general. Writing
+$B_P$ for the corresponding $Q$-norm and $c = \|PD\|^2/\|D\|^2$ for the captured
+fraction, the one-term bound holds iff
+$B_P\sqrt{1-c} \le A_P(1-\sqrt c)$; for small leakage $\eta = \sqrt{1-c}$ the
+right side shrinks like $\eta^2/2$ while the left shrinks like $\eta$, so the
+condition is roughly $B_P/A_P \lesssim \eta/2$. Capturing $99\%$ of the tail
+energy therefore still requires the unembedding rows themselves to be $95\%$
+contained in the same subspace --- a joint condition on $W_U$ and the tail, not a
+statement about the tail alone. Proposition~\ref{prop:rank} avoids the issue by
+keeping both terms, and is valid for a $P$ fitted to the very data it is
+evaluated on, being a deterministic per-example inequality. Note also that $P$
+must be built from the \emph{post-normalisation} difference $D$, not from
+$\hs{L}-\hs{\ell}$, since RMSNorm's rescaling and gain change the relevant
+subspace.
+\end{remark}
+
+\subsection{Cost accounting, and when self-drafting dominates}
+\label{sec:depth-cost}
+
+We first record an exact expression for round yield that makes no independence
+assumption, since acceptance events at successive positions are strongly
+correlated in practice.
+
+\begin{proposition}[Exact expected yield]
+\label{prop:yield}
+Consider a round with lookahead $\gamma$ (Definition~\ref{def:specround}) and let
+$A_j$ be the event that the first $j$ drafted tokens are all accepted,
+$j = 1,\dots,\gamma$. Then the number $Y$ of tokens emitted in the round
+satisfies
+\begin{equation}
+  Y = 1 + \sum_{j=1}^{\gamma} \mathbf{1}[A_j],
+  \qquad\text{hence}\qquad
+  \E[Y] = 1 + \sum_{j=1}^{\gamma} \Prob[A_j] .
+  \label{eq:exactyield}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Acceptance halts at the first rejection, so the number of accepted tokens is
+$K = \max\{j : A_j \text{ holds}\}$ (with $K=0$ if $A_1$ fails), and $A_j$ holds
+if and only if $j \le K$. Therefore $\sum_{j=1}^{\gamma}\mathbf{1}[A_j] = K$.
+The round emits the $K$ accepted tokens plus exactly one further token --- drawn
+from the residual \eqref{eq:residualdist} if $K < \gamma$, and from the target at
+the final position if $K = \gamma$ --- so $Y = K+1$. Linearity of expectation
+gives the second identity; no independence is used.
+\end{proof}
+
+\begin{corollary}[Geometric special case]
+\label{cor:geom}
+If acceptance events are i.i.d.\ with rate $\alpha$, then
+$\Prob[A_j] = \alpha^{j}$ and
+$\E[Y] = (1-\alpha^{\gamma+1})/(1-\alpha)$.
+\end{corollary}
+
+\begin{proof}
+Substitute into \eqref{eq:exactyield}:
+$\E[Y] = 1 + \sum_{j=1}^\gamma \alpha^j
+ = 1 + \frac{\alpha - \alpha^{\gamma+1}}{1-\alpha}
+ = \frac{1 - \alpha^{\gamma+1}}{1-\alpha}$.
+\end{proof}
+
+\begin{remark}
+Correlated acceptance makes $\Prob[A_j] \ge \prod_{i \le j}\alpha_i$ typical ---
+easy contexts accept runs, hard contexts reject early --- so
+Corollary~\ref{cor:geom} evaluated at the mean acceptance rate generally
+\emph{under}-estimates yield. Reported speedups computed from
+Corollary~\ref{cor:geom} are therefore conservative, which is the safe direction
+for the comparison below, since both schemes are scored the same way.
+\end{remark}
+
+\begin{definition}[Head fraction]
+\label{def:headfrac}
+Let $u \in [0,1)$ be the fraction of a full single-position forward pass
+attributable to the unembedding $W_U$, so that the $L$ blocks jointly account for
+$1-u$. Every draft step must evaluate $W_U$, since a draft is useless unless a
+token can be sampled from it.
+\end{definition}
+
+\begin{proposition}[Round cost]
+\label{prop:cost}
+Let $\rho = \ell/L$ and $D = w + (1-w)\gamma$. Under
+Definitions~\ref{def:cost} and \ref{def:headfrac}, one round with lookahead
+$\gamma$ costs
+\begin{align}
+  C_{\mathrm{self}}(\rho,\gamma,w)
+    &= \gamma\big[(1-u)\rho + u\big]
+     \;+\; \big[(1-u)(1-\rho) + u\big]\,D ,
+    \label{eq:cself}\\
+  C_{\mathrm{ext}}(c_d,\gamma,w)
+    &= \gamma c_d \;+\; D ,
+    \label{eq:cext}
+\end{align}
+for early-exit self-drafting at layer $\ell$ and an external draft model of
+relative per-position cost $c_d$ respectively.
+\end{proposition}
+
+\begin{proof}
+Each of the $\gamma$ draft steps evaluates blocks $1..\ell$ at one position,
+costing $(1-u)\rho$ by Definitions~\ref{def:cost} and~\ref{def:headfrac}, plus
+the head, costing $u$; at $m=1$ these are independent of $w$. Verification
+evaluates $M$ at the $\gamma$ drafted positions. Blocks $1..\ell$ at those
+positions were already evaluated during drafting and their cached keys and
+values are exactly those verification requires, so only blocks $\ell+1..L$ are
+evaluated, costing $(1-u)(1-\rho)D$, together with the head at $\gamma$
+positions, costing $uD$. The external draft shares no blocks with $M$ and pays
+full verification $D$.
+\end{proof}
+
+\begin{theorem}[Self-drafting dominates in every regime]
+\label{thm:dominance}
+Fix $\gamma \ge 1$, $w \in [0,1]$, $\rho \in (0,1)$. If an external draft model
+has relative cost $c_d \ge u + (1-u)\rho$ and acceptance
+$\alpha_d \le \alpha_\ell$, then early-exit self-drafting at layer $\ell$ attains
+strictly greater speedup.
+\end{theorem}
+
+\begin{proof}
+From \eqref{eq:cself}--\eqref{eq:cext},
+\begin{equation}
+  C_{\mathrm{ext}} - C_{\mathrm{self}}
+  = \gamma\big[c_d - u - (1-u)\rho\big] \;+\; (1-u)\rho\, D ,
+\end{equation}
+whose first term is non-negative by hypothesis and whose second is strictly
+positive. Hence $C_{\mathrm{self}} < C_{\mathrm{ext}}$, while
+$\E[Y\mid\alpha_\ell] \ge \E[Y\mid\alpha_d] > 0$ by Proposition~\ref{prop:yield}
+and monotonicity of the yield in the acceptance events.
+\end{proof}
+
+\begin{corollary}[The head is a hard ceiling]
+\label{cor:ceiling}
+Even with perfect acceptance and $\rho \to 0$, the speedup of self-drafting
+satisfies
+\begin{equation}
+  S \;\le\; \frac{\gamma+1}{\gamma u + D} \;\xrightarrow[w \to 1]{}\;
+  \frac{\gamma+1}{\gamma u + 1} .
+\end{equation}
+For Qwen3-0.6B, whose tied unembedding is $151936 \times 1024$ of roughly
+$5.96\times10^{8}$ parameters, $u \approx 0.26$, giving $S \le 2.45$ at
+$\gamma = 4$.
+\end{corollary}
+
+\begin{remark}[Why omitting the head is not a rounding error]
+\label{rem:headmatters}
+Writing $C_{\mathrm{self}} = \gamma\rho + 1$, as is common, assumes a draft step
+streams only the first $\ell$ blocks. It must also stream $W_U$. At
+$\gamma = 4$ the omission inflates the reported speedup by a factor of $1.07$ at
+$\rho = 0.75$, $1.17$ at $\rho = 0.5$ and $1.39$ at $\rho = 0.25$ --- largest
+exactly where early exit is most attractive. Since our pre-registered kill
+criterion for this thesis is $\max S \le 1$, an error of this size and sign can
+invert the conclusion, and small models with large vocabularies are the worst
+case rather than a corner case.
+\end{remark}
+
+\begin{corollary}[Shortlisted draft head]
+\label{cor:shortlist}
+Let $S \subseteq \Vocab$ be chosen independently of the current logits, and let
+the draft be $q_S(x) = p_\ell(x)/p_\ell(S)$ for $x \in S$ and $0$ otherwise.
+Then decoding remains exact, the head cost falls from $u$ to $u|S|/V$, and
+\begin{equation}
+  \alpha_S \;\ge\; \alpha_\ell - p_L(\Vocab \setminus S) .
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+Exactness is Theorem~\ref{thm:exact}, which requires no support condition --- this
+is where its full generality is used. For the rate, $q_S \ge p_\ell$ pointwise on
+$S$, so
+$\alpha_S = \sum_{x\in S}\min\{p_L,q_S\} \ge \sum_{x \in S}\min\{p_L,p_\ell\}
+ = \alpha_\ell - \sum_{x \notin S}\min\{p_L,p_\ell\} \ge \alpha_\ell - p_L(S^c)$.
+The cost claim is immediate, as only the rows of $W_U$ indexed by $S$ are needed.
+\end{proof}
+
+\begin{remark}
+$S$ must be fixed in advance --- a static frequency shortlist, or one conditioned
+on the previous token --- because selecting a top-$k$ set requires the full logit
+vector and so would not save the streaming of $W_U$. Corollary~\ref{cor:shortlist}
+is the natural route around Corollary~\ref{cor:ceiling}, and it trades a bounded,
+\emph{measurable} acceptance loss for the head cost.
+\end{remark}
+
+\begin{remark}[On the value of cache reuse]
+\label{rem:kvreuse}
+It is sometimes objected that reusing the draft's cached keys and values is
+worthless in the memory-bound regime, on the grounds that the saving is in
+per-position arithmetic, which $w = 1$ already prices at zero. That is not what
+is being saved. Reuse allows verification to \emph{skip blocks $1..\ell$
+entirely}, and therefore to skip streaming their parameters --- which is exactly
+the cost that $w = 1$ charges. This is the term $(1-u)\rho D$ in
+Theorem~\ref{thm:dominance}, and it is why self-drafting wins even at
+$c_d = u + (1-u)\rho$, where the two schemes pay identical drafting cost. Two
+caveats are real: the saving applies only to positions on the accepted prefix,
+and ``identical'' holds up to floating-point reduction order between the two
+kernel shapes.
+\end{remark}
+
+\begin{remark}[The real obstruction is the training objective]
+\label{rem:offdist}
+Theorem~\ref{thm:dominance} is conditional on $\alpha_\ell \ge \alpha_d$, and
+for an untrained early exit this is exactly what fails: $W_U$ was fit against
+$N(\hs{L})$ alone, so $N(\hs{\ell})$ is off-distribution for it and
+$\alpha_\ell$ is small at useful $\rho$. This is a statement about the training
+objective rather than the architecture, and is what an early-exit auxiliary loss
+with layer dropout addresses \cite{elhoushi2024,zhang2023draft}. The complaint of
+this section is therefore best stated not as ``speculative decoding is a hack''
+but as: \emph{models are trained so that their intermediate layers are not
+decodable, and a second network is then introduced to supply what the first was
+never asked to expose.}
+\end{remark}

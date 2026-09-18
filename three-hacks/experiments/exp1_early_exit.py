@@ -6,11 +6,27 @@ Measures, for every layer of a <=1B Qwen, the early-exit acceptance rate
 i.e. exactly the probability that speculative sampling accepts a token drafted
 by exiting at layer l. No training, no draft model, forward passes only.
 
-It also measures how loose Theorem 2.3 actually is, decomposed into its two
-sources of slack, because that decomposition is the real deliverable:
+Two corrections relative to the naive version, both of which change conclusions:
 
-    TV(p_l, p_L)   <=   1 - exp(-2 * eps_actual)      <- Lemma 2.1 (softmax)
-    eps_actual     <=   ||W_U||_2,inf * ||dN||_2      <- Cauchy-Schwarz on rows
+  * COST. Every draft step must stream the unembedding W_U to sample from p_l,
+    not just the first l blocks. For Qwen3-0.6B W_U is ~26% of all parameters,
+    so omitting it inflates speedup by up to 1.39x at rho=0.25 -- largest
+    exactly where early exit looks most attractive -- and imposes a hard ceiling
+    S <= (gamma+1)/(gamma*u + 1). The kill criterion is max S <= 1.0, so this
+    can invert the verdict.
+  * BOUND. Softmax is shift-invariant but ||.||_inf is not, so the sup-norm
+    bound is slack by up to 2x. We use the spread (max - min) of the logit
+    difference instead, which is the shift-invariant quantity.
+
+It also measures how loose the acceptance bound actually is, decomposed into its
+two sources of slack, because that decomposition is the real deliverable:
+
+    TV(p_l, p_L)   <=   1 - exp(-spread)             <- softmax lemma
+    spread         <=   D_U * ||dN||_2               <- Cauchy-Schwarz on rows
+
+where D_U = max_ij ||w_i - w_j|| is the unembedding diameter. Computing D_U
+exactly is O(V^2); we use the valid upper bound D_U <= 2*||W_U||_2,inf, which
+only weakens the bound and so keeps it a bound.
 
 If the bound is vacuous (expected) the interesting question is *which* of those
 two inequalities threw the information away. My prediction is the second: W_U
@@ -67,6 +83,10 @@ def main():
                          "at exactly the scale we are trying to measure")
     ap.add_argument("--max-gamma", type=int, default=8)
     ap.add_argument("--out", default="exp1_results.json")
+    ap.add_argument("--shortlist", type=int, default=0,
+                    help="if >0, also report the shortlisted-head variant with "
+                         "|S|=k: head cost falls to u*k/V, acceptance loses at "
+                         "most p_L(S^c), which is measured")
     args = ap.parse_args()
 
     dtype = getattr(torch, args.dtype)
@@ -79,15 +99,30 @@ def main():
     head = model.get_output_embeddings()
     W_U = head.weight                                  # [V, d]
     wu_row_max = W_U.norm(dim=-1).max().item()         # ||W_U||_2,inf
+    D_U = 2.0 * wu_row_max                             # upper bound on diameter
+
+    # head fraction u: share of a single-position forward pass spent on W_U
+    n_total = sum(p.numel() for p in model.parameters())
+    n_head = W_U.numel()
+    if model.config.tie_word_embeddings:
+        # tied: the embedding matrix is counted once in parameters() but is
+        # streamed by both the embedding lookup and the head; the head still
+        # accounts for n_head of the bytes a draft step must read.
+        pass
+    u = n_head / n_total
     L = model.config.num_hidden_layers
     d = model.config.hidden_size
     print(f"{args.model}: L={L} layers, d={d}, V={W_U.shape[0]}, "
           f"||W_U||_2,inf={wu_row_max:.3f}, device={device}")
+    print(f"head fraction u = {n_head}/{n_total} = {u:.3f}  "
+          f"(ceiling S <= (g+1)/(g*u+1), = {(args.max_gamma+1)/(args.max_gamma*u+1):.2f} "
+          f"at gamma={args.max_gamma})")
 
     # accumulators, one slot per layer 1..L
     acc = {k: [0.0] * (L + 1) for k in
            ("alpha", "top1", "tail", "eps_actual", "eps_bound", "dnorm")}
     n_tok = 0
+    pL_sum = torch.zeros(W_U.shape[0], device=device)   # for the shortlist study
 
     for prompt in PROMPTS:
         ids = tok(prompt, return_tensors="pt").to(device)
@@ -97,6 +132,7 @@ def main():
         p_L = torch.softmax(head(norm(h_final)).float(), dim=-1)[0]      # [T, V]
         T = p_L.shape[0]
         n_tok += T
+        pL_sum += p_L.sum(0)
 
         for l in range(1, L + 1):
             h_l = hs[l]
@@ -110,8 +146,10 @@ def main():
 
             tail = (h_final - h_l)[0].norm(dim=-1)                       # T_l
             dnorm = (n_L - n_l)[0].float().norm(dim=-1)                  # ||dN||_2
-            eps_act = (logits_l - head(n_L).float()[0]).abs().max(-1).values
-            eps_bnd = wu_row_max * dnorm
+            dlogit = logits_l - head(n_L).float()[0]
+            # shift-invariant spread, not sup-norm: softmax ignores constants
+            eps_act = dlogit.max(-1).values - dlogit.min(-1).values
+            eps_bnd = D_U * dnorm
 
             for key, val in (("alpha", alpha), ("top1", top1), ("tail", tail),
                              ("eps_actual", eps_act), ("eps_bound", eps_bnd),
@@ -131,8 +169,8 @@ def main():
         rho = l / L
         a = acc["alpha"][l]
         # Theorem 2.3, with the two stages separated
-        bound_from_actual = math.exp(-2 * acc["eps_actual"][l])
-        bound_full = math.exp(-2 * acc["eps_bound"][l])
+        bound_from_actual = math.exp(-acc["eps_actual"][l])
+        bound_full = math.exp(-acc["eps_bound"][l])
         slack = acc["eps_bound"][l] / max(acc["eps_actual"][l], 1e-9)
         rows.append(dict(layer=l, rho=rho, alpha=a, top1=acc["top1"][l],
                          tail=acc["tail"][l], eps_actual=acc["eps_actual"][l],
@@ -142,11 +180,12 @@ def main():
               f"{acc['tail'][l]:>8.2f} {acc['eps_actual'][l]:>8.3f} "
               f"{acc['eps_bound'][l]:>9.3f} {bound_from_actual:>9.2e} {slack:>7.1f}x")
 
-    print("\n'bound(a)' is Theorem 2.3 fed the *measured* eps -- pure softmax-Lipschitz slack.")
-    print("'slack' is eps_bound/eps_actual -- how much the ||W_U||_2,inf step alone gives away.")
+    print("\n'bound(a)' is the bound fed the *measured* spread -- pure softmax slack.")
+    print("'slack' is eps_bound/eps_actual -- what the D_U Cauchy-Schwarz step gives away.")
 
     # ---- speedup surface, Proposition 2.4 ------------------------------------
-    print(f"\nSpeedup S(l, gamma), memory-bound cost model (cost = gamma*l/L + 1):\n")
+    print(f"\nSpeedup S(l, gamma), memory-bound (w=1), head cost included:")
+    print(f"  C_self = gamma*[(1-u)*rho + u] + [(1-u)*(1-rho) + u]\n")
     gammas = list(range(1, args.max_gamma + 1))
     print("  l  rho  " + "".join(f"  g={g:<4}" for g in gammas))
     best = (0.0, None, None)
@@ -155,11 +194,35 @@ def main():
         cells = []
         for g in gammas:
             exp_tok = (1 - a ** (g + 1)) / (1 - a)
-            s = exp_tok / (g * rho + 1)
+            # memory-bound: D = w + (1-w)*gamma = 1 at w=1
+            cost = g * ((1 - u) * rho + u) + ((1 - u) * (1 - rho) + u)
+            s = exp_tok / cost
             cells.append(s)
             if s > best[0]:
                 best = (s, l, g)
         print(f"{l:>3} {rho:>4.2f}  " + "".join(f"{c:>7.3f}" for c in cells))
+
+    # ---- shortlisted draft head ---------------------------------------------
+    if args.shortlist:
+        k = min(args.shortlist, pL_sum.numel())
+        topk = pL_sum.topk(k).indices
+        # mean_x p_L(S) under the same token distribution that produced pL_sum
+        mass_in = pL_sum[topk].sum().item() / n_tok
+        leak = 1.0 - mass_in
+        u_s = u * k / W_U.shape[0]
+        print(f"\nShortlisted head, |S|={k}: head fraction {u:.3f} -> {u_s:.4f}, "
+              f"acceptance loses at most p_L(S^c) = {leak:.4f}")
+        best_s = (0.0, None, None)
+        for l in range(1, L + 1):
+            rho = l / L
+            a = min(max(acc["alpha"][l] - leak, 1e-9), 1 - 1e-9)
+            for g in gammas:
+                exp_tok = (1 - a ** (g + 1)) / (1 - a)
+                cost = g * ((1 - u_s) * rho + u_s) + ((1 - u_s) * (1 - rho) + u_s)
+                if exp_tok / cost > best_s[0]:
+                    best_s = (exp_tok / cost, l, g)
+        print(f"  best S = {best_s[0]:.3f} at layer {best_s[1]}, gamma={best_s[2]} "
+              f"(vs {best[0]:.3f} unshortlisted)")
 
     print(f"\nBest S = {best[0]:.3f} at layer {best[1]} (rho={best[1]/L:.2f}), gamma={best[2]}")
     if best[0] <= 1.0:
@@ -172,6 +235,7 @@ def main():
 
     with open(args.out, "w") as f:
         json.dump(dict(model=args.model, L=L, d=d, wu_row_max=wu_row_max,
+                       head_fraction=u, D_U=D_U,
                        n_tok=n_tok, best_speedup=best[0], best_layer=best[1],
                        best_gamma=best[2], rows=rows), f, indent=2)
     print(f"\nwrote {args.out}")

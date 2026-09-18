@@ -1,0 +1,79 @@
+\section{A unified object, and how to falsify these claims}
+\label{sec:unified}
+
+\subsection{What the three results describe together}
+
+Placed side by side, the surviving results do not describe three patches but one
+design, with each axis constrained by a different theorem:
+\begin{itemize}
+  \item \textbf{State.} A learned, bounded, gated recurrence
+        (Theorem~\ref{thm:linattn}) --- but with a \emph{dense} transition if an
+        HMM-like reading is wanted (Theorem~\ref{thm:noembed}), and with enough
+        exact-recall capacity to clear Theorem~\ref{thm:recall}.
+  \item \textbf{Time.} Serial steps that need not emit a token
+        (Theorem~\ref{thm:sim}), but which \emph{accumulate} rather than
+        overwrite (Corollary~\ref{cor:crossover}), with projection onto a learned
+        codebook every $k$ steps (Open Problem~\ref{op:drift}).
+  \item \textbf{Depth.} Early exit governed by tail energy
+        (Theorem~\ref{thm:accept}), supplying both an adaptive halting signal and,
+        on the tokens that do not halt, a free speculative draft
+        (Theorem~\ref{thm:dominance}).
+\end{itemize}
+The depth axis serves two purposes at once: the signal that says ``this token is
+easy, emit it now'' is the signal that produces a draft for the tokens that are
+not. Adaptive computation time \cite{graves2016act} and self-speculation are the
+same mechanism read in opposite directions. We prove nothing about the
+combination and regard the experiments below as prior to any such attempt.
+
+\subsection{Protocol}
+
+Each experiment targets one theorem and carries a kill criterion fixed in
+advance. Models are $\le$1B parameters; two experiments require no training.
+
+\paragraph{E1: acceptance profile (Theorems~\ref{thm:accept},
+\ref{thm:dominance}).} For every layer $\ell$ of Qwen3-0.6B, measure
+$\alpha_\ell = 1 - \TV(p_\ell,p_L)$, tail energy $T_\ell$, and the bound
+\eqref{eq:acceptbound}, then evaluate the speedup surface with the corrected cost
+\eqref{eq:cself} including the head fraction $u \approx 0.26$. Report the
+looseness of \eqref{eq:acceptbound} decomposed into its Cauchy--Schwarz and
+softmax stages, and compare against Proposition~\ref{prop:rank} with $P$ fitted
+to the post-norm tail. \textbf{Kill:} $\max_{\ell,\gamma} S \le 1$ both untuned
+and after an early-exit auxiliary-loss adaptation.
+
+\paragraph{E2: bandwidth (Theorem~\ref{thm:stream}).} Train $\sim$10M-parameter
+models from scratch on $\mathrm{PROD}_{N,T}$ under a \emph{streaming} read
+schedule, which Proposition~\ref{prop:confound} shows must be enforced rather
+than assumed: the re-read escape is otherwise open, and because composition is
+associative, recomputation costs only $\log_2 T$ depth, so a $4$-layer model
+needs $T \gtrsim 2^{8}$ before depth alone closes it. Sweep the interface width
+against $\log_2(N!)$ and check the predicted threshold at $N = 9$
+(Corollary~\ref{cor:instantiate}). \textbf{Kill:} accuracy does not fall at
+$b < \log_2(N!)$ once the read schedule is enforced.
+
+\paragraph{E3: the HMM identity and the missing bridge
+(Theorems~\ref{thm:hmm}, \ref{thm:noembed}).} Verify Theorem~\ref{thm:hmm}
+numerically against brute-force path enumeration, per state and per timestep, with
+a negative control that drops non-negativity. Then verify
+Theorem~\ref{thm:noembed} directly: check that row-support is non-increasing
+along a gated linear-attention recurrence and strictly increasing along the
+forward algorithm, and that the $\Psi_o$ fail to commute. \textbf{Kill:} the
+identity fails, or the support and commutator tests come out the other way.
+
+\paragraph{E4: capacity (Theorem~\ref{thm:recall}).} Restrict Qwen3-0.6B's
+attention to a sliding window of $w$ tokens as a bounded-state proxy and locate
+the associative-recall break-point as a function of $w$. Note that the Fano form
+of Theorem~\ref{thm:recall} predicts \emph{graceful} degradation past threshold
+rather than a cliff. \textbf{Kill:} the break-point does not move with $w$, which
+would falsify the proxy rather than the theorem.
+
+\subsection{Limitations}
+
+The cost model of Definition~\ref{def:cost} ignores attention's quadratic term
+and KV traffic. Theorem~\ref{thm:tc0} is a statement about classes and does not
+constrain any individual trained model (Remark~\ref{rem:tc0-care}).
+Theorem~\ref{thm:sim} and Theorem~\ref{thm:tc0} assume incompatible precision
+regimes. Theorem~\ref{thm:stream} requires a streaming read schedule that real
+architectures do not obey, and Remark~\ref{rem:barrington} explains why removing
+that hypothesis is not merely difficult but would separate $\mathrm{TC}^0$ from
+$\mathrm{NC}^1$. Finally, no experiment in this paper has been run: the results
+above are stated as predictions with kill criteria, and we report them as such.

@@ -34,144 +34,167 @@ The point of this directory is to do the two things that make it more than a ran
 
 ## Scoreboard (what the math actually says)
 
-I wrote the proofs first, expecting to confirm all three. The math only partly cooperated, which
-is the useful part.
+I wrote the proofs expecting to confirm all three, then had each section audited
+adversarially. Two of the three headline claims did not survive, and the corrected
+versions are more interesting than what I started with. Full formal treatment is in
+[`paper/`](paper/); the errata are in [`theory.md`](theory.md).
 
-### 1. Early-exit drafting — **the complaint is right, and for a sharper reason than I had**
+### 1. Early-exit drafting — **stands, with a cost ceiling I had missed**
 
-Speculative sampling returns *exactly* the target model's distribution for **any** draft
-distribution `q` whatsoever (Theorem 2.1). Correctness places no constraint on the draft at all.
-So there is no correctness argument for a separate draft model — the entire design question is the
-ratio of acceptance to cost, and nothing else.
+Speculative sampling returns *exactly* the target distribution for **any** draft `q`
+whatsoever — no support condition, no constraint at all. Correctness therefore never
+justified a separate draft network; the whole question is acceptance against cost.
+Under a cost model that interpolates between memory- and compute-bound decoding,
+self-drafting strictly dominates any external draft of comparable relative cost, in
+*every* regime, and the strictness comes from cache reuse letting verification skip
+blocks `1..ℓ` entirely — i.e. skip *streaming their weights*, which is precisely what
+the memory-bound regime charges for.
 
-That makes the external draft model look strictly silly in the single-stream memory-bound regime,
-where decode time is dominated by *streaming weights from HBM*, not by FLOPs. A separate draft
-model is a second set of weights to stream. Early exit reuses weights that are already in flight,
-and the draft's KV entries for layers `1..ℓ` are the *same tensors* verification needs
-(Proposition 2.4). The self-draft's marginal cost is `ℓ/L`; the external draft's is
-`(its size)/(target size)` plus a second weight stream, plus VRAM, plus tokenizer alignment.
-
-And there is a real bound to check. Because the residual stream is additive, the gap between the
-layer-`ℓ` distribution and the final one is controlled by the *tail energy* of the remaining
-blocks, giving (Theorem 2.3):
+**What the audit caught:** every draft step must also stream the unembedding `W_U` to
+sample from `p_ℓ`. For Qwen3-0.6B that is ~26% of all parameters, paid on every draft
+step. This imposes a hard ceiling
 
 ```
-α_ℓ  ≥  exp( −2 · ‖W_U‖₂,∞ · κ · T_ℓ )        T_ℓ = ‖ Σ_{k>ℓ} F_k(h^(k−1)) ‖₂
+S  ≤  (γ+1) / (γu + 1)   =  2.45  at γ=4, u=0.26
 ```
 
-Acceptance rate is lower-bounded by how little work the model has left to do. Every quantity on
-the right is measurable on a 0.6B model in an afternoon.
+and inflates naive speedup estimates by up to 1.39× at `ρ=0.25` — largest exactly where
+early exit looks most attractive. Since the pre-registered kill criterion is `max S ≤ 1`,
+this can invert the verdict. The way out is a *shortlisted* draft head, which the
+exactness theorem legitimises precisely because it needs no support condition: restrict
+the draft to a pre-chosen `S ⊆ V`, cut head cost to `u|S|/V`, and lose at most
+`p_L(V∖S)` acceptance.
 
-**The catch, stated honestly:** this is not a new idea. LayerSkip, Draft&Verify, Kangaroo, Medusa
-and EAGLE all live here. And the reason the naive version underperforms is well known — intermediate
-layers were never *trained* to be decodable, so `p_ℓ` is off-distribution for the unembedding.
-Which relocates the hack: **the hack isn't speculative decoding, it's that we don't train for
-decodable intermediate layers.** That's an objective-function problem, not an architecture problem,
-and it is cheap to test.
+Still not novel as a mechanism — LayerSkip, Draft&Verify, Medusa, EAGLE. The honest
+relocation stands: **the hack isn't speculative decoding, it's training models whose
+intermediate layers aren't decodable.**
 
-### 2. Latent reasoning — **strong form is provably false, refined form is provably true**
+### 2. Latent reasoning — **my headline was backwards**
 
-The strong claim ("CoT is only a hack, a model that had learnt to reason would not need it") is
-**false under standard complexity assumptions**, and I think this is worth internalising rather
-than arguing with. A fixed-depth, log-precision transformer computes only functions in uniform
-`TC⁰`. With `poly(n)` chain-of-thought steps the same model decides everything in `P`
-(Merrill & Sabharwal). So if `TC⁰ ≠ P`, *no* amount of latent cleverness at fixed depth replaces
-serial steps. Serial compute is not a hack. It is load-bearing.
+The strong form is false under `TC⁰ ≠ P`: serial steps buy power fixed depth cannot
+recover. I had that right. What I got **wrong** was the bandwidth argument, and the
+error reverses the conclusion.
 
-But the medium is negotiable, and that is where the complaint survives — with teeth. A CoT
-trajectory's entire state is a deterministic function of the emitted tokens, so after `n` steps it
-can occupy at most `|V|ⁿ` distinguishable configurations: **≤ log₂|V| ≈ 17 bits written per step**
-for Qwen's vocabulary. A latent step writes a `d`-dimensional vector. Nominally `d·b` bits; even at
-a pessimistic ~4 effective bits per coordinate on a `d=1024` model that is ~4,000 bits
-(Theorem 3.2). Two to three orders of magnitude per step. And anything CoT can do in `n` steps,
-latent recurrence can do in `n` steps (Theorem 3.3), so the inclusion is strict.
+I claimed `n` latent steps reach `2^(n·d·b)` states against CoT's `|V|ⁿ`. That is false:
+iterating a deterministic map cannot grow cardinality (`|G(A)| ≤ |A|`), so `n` steps of a
+fixed-size latent state reach at most `2^(d·b)` states — no `n` in the exponent at all.
+The right comparison is **accumulation**, not per-step width:
 
-**Refined thesis, which I believe and can defend:** serial compute is necessary; *discretising it
-through the vocabulary* is the hack.
+| medium | per-step width | accumulates? | state after `n` steps |
+|---|---|---|---|
+| chain of thought | `log₂V ≈ 17` bits | yes — tokens persist, attention re-reads them | `n · log₂V` |
+| fixed-size latent loop | `d·b ≈ 4096` bits | **no** — each step overwrites | `d·b` |
+| appended latent thoughts | `d·b` bits | yes | `n · d·b` |
 
-**The open crux, which I can't yet prove either way:** discretisation may be doing real work as an
-*error-correcting code*. Rounding to a token projects the state onto a finite codebook every step
-and stops drift from compounding. Latent recurrence has no such projection, which is plausibly why
-looped models are hard to train deep. The honest formulation is a trade-off between bandwidth and
-drift, and I don't know the shape of that curve. That is the most interesting thing in this
-directory (Conjecture 3.4).
+So a token chain **overtakes** a fixed-size latent loop at `n* = d·b/log₂V ≈ 238` steps —
+i.e. throughout the thousands-of-tokens regime that makes CoT interesting. My §3 and §4
+were contradicting each other: this is just the fixed-state recall ceiling seen from the
+other side.
 
-### 3. Transformers are gated RNNs — **literally true, with a provable ceiling**
+**Corrected thesis, which I believe:** discretisation is a real per-step cost, and it is
+worth paying only where the medium accumulates. *Latent reasoning should append, not
+overwrite* — and an appending latent medium does dominate CoT at every horizon.
 
-Not a metaphor and not even hard: define the state as the KV cache and a decoder-only transformer
-*is* an RNN, exactly, with state growing as `O(t·d·L)` (Theorem 4.1). Linear attention is the same
-recursion with the state pinned to a fixed `d_k×d_v` matrix, and the gated variants are
-`S_t = Diag(a_t)·S_{t−1} + k_t v_tᵀ` (Theorem 4.2). Katharopoulos et al. said this in 2020 and
-Mamba-2's SSD duality made it a formal correspondence.
+A separation is available unconditionally only under a **streaming read schedule**: with
+full attention the model re-reads the prompt, and with unbounded per-step compute a
+one-step machine solves the task outright. Worse, in the full-attention setting any
+theorem of the form "this needs ≥2 CoT steps" would imply `TC⁰ ≠ NC¹` by Barrington — so
+it is out of reach, not merely open. The experiment has to *enforce* the schedule.
 
-The HMM intuition is also literally right, under constraints: **constrain a gated linear RNN's
-state to be non-negative with row-stochastic transitions and its recursion becomes the HMM forward
-algorithm, term for term** (Theorem 4.3). Decoding becomes the forward recursion; the max-product
-variant is Viterbi. `experiments/exp3_rnn_is_hmm.py` checks this numerically to floating-point
-tolerance, and it runs in plain Python with no dependencies.
+### 3. Transformers are gated RNNs — **true, but the payoff claim is false**
 
-The ceiling is the part the complaint has to survive, and it is a theorem, not a vibe: exact recall
-of `n` tokens requires `Ω(n log|V|)` bits of state, so a **fixed**-state RNN provably cannot copy or
-retrieve beyond its state capacity, while a growing KV cache can (Theorem 4.4). This is why pure
-linear-attention models fail associative recall, and why every serious system has converged on
-hybrids — a mostly-recurrent stack with a few full-attention layers. So the honest version of
-thesis 3 is: *yes, they're gated RNNs; the unbounded state is not decoration, it buys exact recall,
-and the design question is how few full-attention layers you can get away with.*
+The recurrent form is real and nearly vacuous: *every* causal model admits one, and the
+trivial state (`S_t = x_{1:t}`) is ~10⁴× **smaller** than the KV cache, so a transformer
+does not compress its history — it expands it. The content is incrementality: the cache
+is appended to and never rewritten, costing `Θ(Ld² + LtH_kv d_h)` per step against
+`Θ(Lt²d)` to recompute.
 
----
+The HMM identity is real: `s_t = (Aᵀ s_{t−1}) ⊙ b(o_t)` **is** the forward algorithm, and
+max-product **is** Viterbi. Verified per `(t,j)` against brute-force path enumeration,
+with a negative control confirming non-negativity is load-bearing for Viterbi only.
+
+**But the bridge I claimed does not exist, and cannot.** Gated linear attention updates
+`S_t = Diag(a_t)S_{t−1} + φ(k_t)v_tᵀ` — a *diagonal* action. The forward algorithm needs
+`Diag(b)Aᵀ` — a *dense* one. Two independent impossibility proofs, both confirmed
+numerically:
+
+- **Support monotonicity.** `Φ(S) − Φ(S') = Diag(a)(S−S')`, so the rows on which two
+  trajectories differ can only shrink. Under `Ψ` one differing coordinate spreads to all
+  of them in a single step.
+- **Simultaneous diagonalisability.** Conjugacy by any injective linear map would force
+  every `Ψ_o` diagonal in one basis, hence commuting. They don't
+  (`‖Ψ₀Ψ₁−Ψ₁Ψ₀‖ ≈ 4.5e-2`).
+
+A gate *is* a diagonal matrix; constraining it non-negative and stochastic gives the
+identity, not a transition matrix. **The transition has to be added to the architecture,
+not constrained out of a gate that is already diagonal** — and diagonality is exactly
+what makes these models parallelise as an associative scan. So "constrain a gated linear
+RNN and get HMM-like decoding" is false as stated. Dense-transition models (the delta
+rule's `I − βkkᵀ`) are the ones where an HMM reading is even a candidate.
+
+The capacity ceiling also needed repair: it is **false** without a finite-precision
+hypothesis, since `s_t = s_{t−1}/2 + x_t/2` stores unbounded history in one real. With
+`m`-bit statefulness it holds, `m ≥ n log₂|V|`, and the Fano version predicts *graceful*
+degradation past threshold rather than the cliff I had pre-registered.
 
 ## Validation plan — small models first, kill criteria up front
 
-Every experiment below has a **pre-registered prediction** and a **kill criterion**. Nothing gets
-scaled up and nothing gets trained until the free version passes. Sizes are Qwen3-0.6B and
-Qwen2.5-0.5B; two of the three need no training at all.
+Every experiment has a **pre-registered prediction** and a **kill criterion**. Nothing
+scales up until the free version passes. Sizes are Qwen3-0.6B; three of the four need no
+training, and one runs with no dependencies at all.
 
 | Exp | Question | Cost | Kill criterion |
 |-----|----------|------|----------------|
-| [`exp1`](experiments/exp1_early_exit.py) | Is `α_ℓ` high enough at small `ℓ/L` to pay for itself? | forward passes only, no training | best `S(ℓ,γ) ≤ 1.0` even after the tuning of §1b |
-| [`exp2`](experiments/exp2_latent_vs_cot.py) | Does the bits-per-step bound predict where CoT breaks? | ~10M params from scratch, CPU-feasible | CoT accuracy does **not** fall off at `log₂(states) > log₂\|V\|` |
-| [`exp3`](experiments/exp3_rnn_is_hmm.py) + [`exp3b`](experiments/exp3b_recall_capacity.py) | Is the HMM equivalence real, and where does fixed state break? | pure Python + forward passes | equivalence fails, or recall break-point is independent of state size |
+| [`exp1`](experiments/exp1_early_exit.py) | Is `α_ℓ` high enough at small `ℓ/L` to beat the head-cost ceiling? | forward passes only | best `S ≤ 1.0` even after early-exit tuning and shortlisting |
+| [`exp2`](experiments/exp2_latent_vs_cot.py) | Does interface width bind at `log₂(n!)`? | ~1M params from scratch, CPU-feasible | accuracy stays high below threshold *with the read schedule enforced* |
+| [`exp3`](experiments/exp3_rnn_is_hmm.py) | Is the HMM identity real, and is the bridge really impossible? | stdlib only | identity fails, or support/commutator tests come out the other way |
+| [`exp3b`](experiments/exp3b_recall_capacity.py) | Where does bounded state break? | forward passes only | break-point does not move with `w` (falsifies the proxy, not the theorem) |
 
-**exp1 — early-exit acceptance profile.** Pure inference. For every layer `ℓ` of Qwen3-0.6B, apply
-the final norm and unembedding to `h^(ℓ)`, and measure acceptance `α_ℓ = 1 − TV(p_ℓ, p_L)`, tail
-energy `T_ℓ`, and the Theorem 2.3 bound. Then compute the speedup surface
-`S(ℓ,γ) = (1−α_ℓ^{γ+1}) / ((1−α_ℓ)(γ·ℓ/L + 1))`.
+**exp1** measures `α_ℓ`, tail energy, and the acceptance bound per layer, then the speedup
+surface under the *corrected* cost including the head fraction `u`. It reports the bound's
+looseness split into its Cauchy–Schwarz and softmax stages, and the shortlisted-head
+variant with the measured `p_L(S^c)`.
 
-> Prediction: the raw bound will be **vacuous** (`ε_ℓ` is large, so `exp(−2ε)` underflows toward 0)
-> while measured `α_ℓ` is respectable — I expect a large gap, because `W_U` only reads a
-> low-rank-ish subspace of the residual stream and the `‖·‖₂,∞` bound ignores that. *Quantifying
-> that gap is the actual result*, and a rank-restricted bound is the follow-up.
-> Second prediction: untuned `α_ℓ` at `ℓ/L = 0.5` lands too low to beat `S=1`, and the LayerSkip-style
-> early-exit LoRA (§1b) is what moves it. If it doesn't, thesis 1 dies cheaply.
+> Prediction: the bound is vacuous and the split says the `D_U` step is responsible.
+> Untuned `α_ℓ` at `ρ=0.5` will not clear `S=1` once the head is charged; whether
+> shortlisting plus early-exit tuning rescues it is the actual open question.
 
-**exp2 — the bandwidth prediction, made falsifiable.** The trick is picking a task with a state
-whose entropy I control exactly: **composition of permutations in `S_n`**. Composing `t`
-permutations has an intermediate state of exactly `log₂(n!)` bits, and nothing smaller suffices.
-Train a ~10M-parameter model from scratch two ways — (a) CoT, emitting the running permutation as
-tokens from a `V`-symbol vocabulary, (b) looped-latent, `r` passes over one block with no emission —
-at matched FLOPs, sweeping `n` and `V` independently.
+**exp2** is a step machine under a **streaming Markov schedule** — step `i` sees generator
+`g_i` and the previous interface, nothing else — with the interface content *unsupervised*
+and trained through a straight-through Gumbel-softmax. That makes `V` a pure channel width
+rather than a corrupted label, and it closes the re-read escape that no amount of depth
+tuning closes on its own.
 
-> Prediction from Theorem 3.2: CoT accuracy collapses precisely when `log₂(n!) > log₂|V|` per step,
-> and *the collapse point moves when you change `V` alone, holding the task fixed*. Latent looping
-> should be flat across that boundary until it hits its own `d`-dependent limit. If CoT sails past
-> its bandwidth bound, the theorem is wrong or the task leaks state, and thesis 2 dies.
-> This is the experiment I most want to run, because `V` is a knob on the *theory*, not on the task.
+> Prediction: accuracy collapses exactly where `log₂V < log₂(n!)`, and the collapse point
+> moves with `V` alone at fixed task and model.
 
-**exp3 — HMM equivalence and the capacity ceiling.** Two parts. The equivalence check builds a
-random HMM and the corresponding gated non-negative linear RNN and asserts identical outputs — it
-validates Theorem 4.3 directly, runs in-container, no dependencies. The capacity probe needs no
-training either (`exp3b`): restrict Qwen3-0.6B's attention to a sliding window of `w` tokens, which
-is exactly a fixed-size-state proxy, and find where associative recall breaks as a function of `w`.
+**exp3** verifies the HMM identity per `(t,j)` against brute-force path enumeration (the
+only non-circular check available — an earlier version compared a loop against its own
+rewrite, which cannot fail), with a negative control, and then verifies the impossibility
+of the bridge directly.
 
-> Prediction: the break-point tracks the information bound of Theorem 4.4 — recall survives while
-> the needed span fits in the window and falls off a cliff after, rather than degrading gently.
+**exp3b** uses window attention as a bounded-state proxy. Note the Fano bound predicts
+*graceful* degradation, so the original "sharp cliff" prediction was wrong and has been
+retracted.
 
 ## Status
 
-Nothing has been run. The container this was written in has no torch, no numpy and no GPU, so
-`exp1` and the `exp2`/`exp3` model halves are **written but unexecuted**; only the pure-Python HMM
-equivalence check in `exp3` has been verified to run. Treat every number above as a prediction,
-not a result.
+`exp3` **runs and passes**, both parts, including the negative control and both
+impossibility checks. `exp1`, `exp2` and `exp3b` are written but **unrun**: no torch, no
+numpy and no GPU in the container this was written in. Every number attributed to them
+above is a prediction.
+
+The paper in [`paper/`](paper/) is written but **not compiled** — no LaTeX toolchain here
+either. Cross-references and environment nesting are checked by script; typesetting is not.
+
+## Provenance
+
+The three sections were each audited adversarially after I wrote them. That process
+killed my thesis-2 headline outright (the cardinality error), killed the thesis-3 payoff
+(the bridge), found the omitted head cost in thesis 1, and found a circular test in
+`exp3`. [`theory.md`](theory.md) records what was wrong and where each correction lives.
+Claims that survived are marked as such; nothing here should be read as confirmed until
+the experiments run.
 
 ## Reading that got here first
 

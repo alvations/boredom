@@ -1,0 +1,232 @@
+\section{Time: serial computation and the width of its carrier}
+\label{sec:time}
+
+The complaint addressed here is that chain-of-thought is a workaround for a
+model that never learned to reason latently. We show the strong form is false
+under standard assumptions (Section~\ref{sec:time-necessary}); that the
+comparison between media is a genuine trade-off with a computable crossover, but
+in the \emph{opposite} direction to the one usually asserted
+(Section~\ref{sec:time-capacity}); and that an unconditional separation is
+available only in a restricted read model, with a barrier explaining why
+(Section~\ref{sec:time-sep}).
+
+\subsection{Serial computation is load-bearing}
+\label{sec:time-necessary}
+
+\begin{theorem}[Depth is not a substitute for steps]
+\label{thm:tc0}
+Let $\mathcal{T}$ be the class of languages decided by fixed-depth,
+log-precision transformer decoders whose feedforward maps are computable in
+space linear in their input, and let $\mathcal{T}_{\mathrm{CoT}}$ be the class
+decided by the same decoders granted $\mathrm{poly}(n)$ chain-of-thought steps.
+Then $\mathcal{T} \subseteq$ uniform $\mathrm{TC}^0$ \cite{merrill2023} and
+$\mathcal{T}_{\mathrm{CoT}} = \mathrm{P}$ \cite{merrill2024}. Consequently, if
+$\mathrm{TC}^0 \ne \mathrm{P}$, then
+$\mathcal{T} \subsetneq \mathcal{T}_{\mathrm{CoT}}$.
+\end{theorem}
+
+\begin{remark}[Three hypotheses that are usually dropped]
+\label{rem:tc0-care}
+First, the uniformity in \cite{merrill2023} is a condition on the \emph{model}
+--- the feedforward maps must be space-constructible --- not a free adjective on
+$\mathrm{TC}^0$; without it the containment is in non-uniform $\mathrm{TC}^0$ and
+the separation required becomes $\mathrm{TC}^0/\mathrm{poly} \ne \mathrm{P}$.
+Second, these are statements about \emph{classes of languages}, not about a
+particular network: a single trained model decides one language, so
+``this model cannot do it without CoT'' does not follow from
+Theorem~\ref{thm:tc0} for any individual model, only the non-existence of
+\emph{some} fixed-depth decoder for the hard language. Third, the ``$=\mathrm{P}$''
+direction additionally requires the generalized pre-norm architecture of
+\cite{merrill2024}. With these in place the conclusion still stands, and it is
+fatal to the strong form of the complaint: serial steps buy computational power
+that no amount of latent skill at fixed depth recovers.
+\end{remark}
+
+\subsection{Scratchpad capacity: a trade-off, not a dominance}
+\label{sec:time-capacity}
+
+We now compare media. The natural intuition --- a token carries
+$\log_2|\Vocab| \approx 17$ bits, a hidden state carries thousands, therefore
+latent recurrence transports far more per step --- is correct about
+\emph{per-step width} and wrong about \emph{total state}, because the two media
+differ in whether that width accumulates.
+
+\begin{definition}[Step medium]
+\label{def:medium}
+A \emph{step medium} of width $b$ is a mechanism by which one serial step
+transmits information to subsequent steps. It is \emph{accumulating} if the
+contents written at every step remain readable at all later steps, and
+\emph{non-accumulating} if each step's write replaces the previous contents.
+\end{definition}
+
+Chain-of-thought is accumulating with $b = \log_2 V$: the emitted tokens persist
+in the context and every later step attends over all of them. A looped or
+depth-recurrent model carrying a single state $s_i \in \R^{d}$ is
+non-accumulating with $b = d\,b_{\mathrm{eff}}$, where $b_{\mathrm{eff}}$ is the
+effective bits per coordinate. A latent model that \emph{appends} each
+continuous thought to the sequence, as in \cite{hao2024coconut}, is accumulating
+with $b = d\,b_{\mathrm{eff}}$.
+
+\begin{theorem}[Scratchpad capacity]
+\label{thm:capacity}
+After $n$ steps, the set of distinguishable carrier contents has cardinality at
+most $2^{nb}$ for an accumulating medium of width $b$, and at most $2^{b}$ for a
+non-accumulating one.
+\end{theorem}
+
+\begin{proof}
+An accumulating medium's contents after $n$ steps are the tuple of the $n$
+writes, each drawn from a set of size at most $2^{b}$. A non-accumulating
+medium's contents are the last write alone, from a set of size at most $2^b$;
+iterating a map cannot increase cardinality, since $|G(A)| \le |A|$ for any $G$
+and any $A$.
+\end{proof}
+
+\begin{corollary}[Crossover]
+\label{cor:crossover}
+Chain-of-thought carries strictly more state than a fixed-size latent loop once
+\begin{equation}
+  n \;>\; n^{*} \;=\; \frac{d\,b_{\mathrm{eff}}}{\log_2 V} .
+\end{equation}
+For $d = 1024$, $b_{\mathrm{eff}} = 4$ and $V = 151936$ this is
+$n^{*} \approx 238$ steps. Against an \emph{accumulating} latent medium of the
+same width, by contrast, chain-of-thought is dominated at every $n$.
+\end{corollary}
+
+\begin{remark}[This reverses the usual claim, and removes a contradiction]
+\label{rem:reversal}
+The informal argument --- $17$ bits against thousands, therefore latent
+recurrence wins --- silently compares a per-step width with a per-step width
+while the quantity that matters for a long derivation is total accessible state.
+A fixed-size latent loop \emph{overwrites}; a chain of tokens \emph{appends}.
+Past a few hundred steps, which is exactly the regime long chains of thought
+occupy, the token stream is the larger memory. This is the same phenomenon as
+Theorem~\ref{thm:recall} viewed from the other side: bounded state is a
+liability for long-horizon work, and it does not stop being one because the state
+is continuous. The defensible form of the complaint is therefore narrower and
+sharper than the original: \emph{the discretisation is a real cost per step, and
+it is worth paying only where the medium accumulates}. Latent recurrence should
+append, not overwrite --- and a model that appends continuous thoughts dominates
+chain-of-thought on this measure at every horizon.
+\end{remark}
+
+\subsection{Simulation, and where a separation can live}
+\label{sec:time-sep}
+
+\begin{theorem}[Latent recurrence simulates chain-of-thought]
+\label{thm:sim}
+Fix a model $M$ with $L$-Lipschitz blocks, a finite prompt set, and a decoding
+temperature $\tau > 0$, and suppose the logit margin at every step of the
+trajectory is at least $\delta > 0$. Then there is an $n$-step latent-recurrent
+computation (Definition~\ref{def:latent}) whose induced token sequence equals
+the $n$-step chain-of-thought trajectory of $M$ exactly.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Take $G$ to be: run $M$'s stack on the current state, apply $W_U N(\cdot)$, form
+$\softmax(\cdot/\tau)$, and write back the corresponding convex combination of
+embeddings. Under a uniform margin $\delta$, taking $\tau$ small enough makes
+this softmax within any desired $\varepsilon$ of the one-hot at the argmax, and
+finiteness of the prompt set makes the required $\tau$ uniform; the Lipschitz
+hypothesis converts the $\varepsilon$ on the written state into a bound on the
+downstream deviation, which stays below $\delta/2$ and hence preserves every
+subsequent argmax. Each $G$ is a composition of $M$'s own maps, so the
+computation lies in the latent-recurrent class.
+\end{proof}
+
+\begin{remark}[A precision tension]
+Theorem~\ref{thm:sim} requires $\Omega(n\log L)$ bits of precision to keep the
+margin through $n$ steps, whereas Theorem~\ref{thm:tc0} is stated for
+log-precision models. The two results are therefore about different machines,
+and no single model satisfies both hypotheses for large $n$. We state this
+rather than paper over it.
+\end{remark}
+
+\begin{remark}[Strictness does not follow]
+\label{rem:nostrict}
+Theorem~\ref{thm:sim} gives an inclusion. The converse separation does
+\emph{not} follow from Theorem~\ref{thm:capacity}, which after
+Corollary~\ref{cor:crossover} runs the other way for large $n$; and a naive
+counting separation fails outright, because intermediate states of a
+deterministic task are functions of the prompt. Concretely, a prompt containing
+two permutations of $S_{30}$ induces $30!$ distinct ``intermediate
+configurations'', which a counting argument would say requires seven CoT tokens
+to distinguish, while a model in fact distinguishes them at $n=0$ by attending to
+the prompt.
+\end{remark}
+
+The escape in Remark~\ref{rem:nostrict} is re-reading the prompt, and it must be
+closed by hypothesis rather than by choice of task.
+
+\begin{theorem}[Separation under a streaming read schedule]
+\label{thm:stream}
+Let $\mathrm{PROD}_{N,T}$ be the problem of composing $T$ given elements of
+$S_N$. Consider a \emph{step machine} that reads one input symbol per step, may
+perform arbitrary computation within a step, and carries information between
+steps only through an interface of width $b$ bits. Such a machine solves
+$\mathrm{PROD}_{N,T}$ for all $T$ if and only if $b \ge \log_2 (N!)$.
+\end{theorem}
+
+\begin{proof}
+Sufficiency: carry the running product, which is an element of $S_N$ and so fits
+in $\lceil \log_2 N!\rceil$ bits; each step composes it with the incoming
+generator. Necessity: the induced map from input prefixes to interface contents
+must be constant on Myhill--Nerode classes of the language
+$\{\,(g_{1:T}, \pi) : g_T\cdots g_1 = \pi\,\}$. Two prefixes with distinct
+running products are inequivalent, since a suitable suffix distinguishes them,
+so the machine needs at least $|S_N| = N!$ interface states.
+\end{proof}
+
+\begin{corollary}
+\label{cor:instantiate}
+With $V = 151936$ and $d\,b_{\mathrm{eff}} = 4096$, a one-token-per-step CoT
+interface fails from $N = 9$ onwards, since
+$\log_2 8! = 15.30 < \log_2 V = 17.21 < 18.47 = \log_2 9!$, while the latent
+interface suffices to $N = 536$.
+\end{corollary}
+
+\begin{proposition}[The streaming hypothesis is doing real work]
+\label{prop:confound}
+With full access to the prompt and unbounded computation within a step, a
+\emph{single}-step machine solves $\mathrm{PROD}_{N,T}$ for every $T$.
+\end{proposition}
+
+\begin{proof}
+The entire input is available in one step; compute the product.
+\end{proof}
+
+\begin{remark}[A barrier]
+\label{rem:barrington}
+Proposition~\ref{prop:confound} means any separation in the full-attention
+setting must be a circuit-complexity statement, not a counting one --- and such
+statements are currently out of reach. By Barrington's theorem, word problems
+over $S_5$ are $\mathrm{NC}^1$-complete, so a theorem of the form
+``$\mathrm{PROD}_{N,T}$ requires at least two chain-of-thought steps for a
+fixed-depth transformer'' would imply $\mathrm{TC}^0 \ne \mathrm{NC}^1$. The
+bandwidth separation of Theorem~\ref{thm:stream} is therefore the strongest
+unconditional result available, and it is conditional on a read schedule that
+real architectures do not obey. Our experimental protocol
+(Section~\ref{sec:unified}) must enforce that schedule rather than assume it.
+\end{remark}
+
+\subsection{Discretisation as error correction}
+
+\begin{openproblem}[Bandwidth against drift]
+\label{op:drift}
+Fix a latent update $G$ and per-step perturbation of variance $\eta^2$, and let
+$\mathcal{C}$ be a codebook of rate $R$ bits per step onto which the state is
+projected every $k$ steps. Quantify the largest $n$ for which the trajectory
+remains recoverable, as a function of $(\eta, R, k)$.
+\end{openproblem}
+
+The premise that discretisation corrects errors is not free: projection reduces
+error only under a margin condition, and near a cell boundary quantisation
+\emph{amplifies} perturbation. For the tractable case of an isometric $G$,
+Gaussian noise of variance $\eta^2$ per step, and a lattice codebook of rate $R$
+in dimension $d$, standard lattice-quantisation arguments give a crossover
+depth scaling as $(P/\eta^{2})\,2^{-2R/d}$ for signal power $P$, below which the
+unquantised trajectory is recoverable and above which projection wins. We state
+the general case as open because neither the isometry nor the noise model
+survives contact with a trained network. The design question it implies --- how
+often to project, onto a \emph{learned} codebook rather than the vocabulary --- is
+the one parameter in this paper that no published architecture sweeps.

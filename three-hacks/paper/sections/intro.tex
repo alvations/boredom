@@ -1,0 +1,66 @@
+\section{Introduction}
+\label{sec:intro}
+
+Three complaints about contemporary language models recur often enough to be
+folklore. Speculative decoding \cite{leviathan2023,chen2023} accelerates
+inference by having a second, smaller network guess ahead --- why can a model not
+guess ahead using its own early layers? Reasoning is elicited by having models
+emit long chains of intermediate tokens --- does that not indicate a model that
+never learned to reason internally? And decoder-only transformers, whose
+key-value cache is carried forward and updated at every step, are recurrent
+networks with an unusually large state --- so why not build the recurrent network
+directly?
+
+Each complaint is usually argued on its own. We observe that they are the same
+question asked along three different axes: \emph{where is a model permitted to
+spend serial computation, and what carries state while it does so?}
+Speculative decoding is about the \emph{depth} axis, where the residual stream
+already contains a usable intermediate answer that is discarded. Chain of
+thought is about the \emph{time} axis, where serial computation is routed
+through the vocabulary. The recurrent-form question is about the \emph{state}
+axis, where an unbounded cache substitutes for a learned compression.
+
+Our contribution is not a new architecture but a precise accounting of what each
+complaint does and does not license. We find the three fare very differently
+under formalisation, and in two cases the honest conclusion is not the one the
+complaint anticipates.
+
+\paragraph{Depth.} Speculative sampling is exact for an \emph{arbitrary} draft
+distribution (Theorem~\ref{thm:exact}), so correctness never justified a separate
+draft network; the question is entirely one of acceptance against cost. We give a
+cost model interpolating between memory- and compute-bound decoding
+(Definition~\ref{def:cost}) under which early-exit self-drafting strictly
+dominates any external draft of comparable relative cost, in every regime
+(Theorem~\ref{thm:dominance}), and lower-bound the acceptance rate by the
+residual tail energy (Theorem~\ref{thm:accept}). We also identify a cost term
+that the informal argument omits and that materially changes the conclusion for
+small models: every draft step must stream the unembedding, which caps the
+attainable speedup (Corollary~\ref{cor:ceiling}) unless the draft head is
+shortlisted (Corollary~\ref{cor:shortlist}).
+
+\paragraph{Time.} The strong form of the complaint is false: under
+$\mathrm{TC}^0 \ne \mathrm{P}$, serial steps buy computational power that fixed
+depth cannot recover (Theorem~\ref{thm:tc0}). The comparison between media is a
+genuine trade-off, and it runs \emph{opposite} to the usual claim. A
+chain-of-thought step writes only $\log_2 V \approx 17$ bits, but those writes
+accumulate; a fixed-size latent loop writes far more per step but overwrites. Past
+a computable crossover --- about $238$ steps for a $1024$-dimensional model ---
+the token stream is the larger memory (Corollary~\ref{cor:crossover}). The
+defensible version of the complaint is therefore that latent reasoning should
+\emph{append} rather than overwrite.
+
+\paragraph{State.} The recurrent form is real but nearly vacuous as usually
+stated; its content is incrementality, not existence (Theorem~\ref{thm:kvform}).
+A constrained dense recurrence does coincide exactly with the HMM forward
+algorithm (Theorem~\ref{thm:hmm}). Our main negative result is that this is
+\emph{not} a statement about gated linear attention: we prove that no injective
+linear embedding carries the forward algorithm into a diagonally-gated
+linear-attention recurrence (Theorem~\ref{thm:noembed}), by a support-monotonicity
+argument and by simultaneous diagonalisability. Since diagonality is precisely
+what makes these architectures parallelisable, ``constrain a gated RNN and obtain
+HMM-like decoding'' is false as stated.
+
+\paragraph{Falsifiability.} Every claim above is either proved, refuted, or
+labelled open. Section~\ref{sec:unified} gives an experimental protocol at
+$\le$1B parameters in which each thesis has a pre-registered kill criterion, and
+two of the four experiments require no training.
