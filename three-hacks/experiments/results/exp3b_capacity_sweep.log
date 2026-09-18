@@ -1,0 +1,19 @@
+Theorem 5.12: an m-bit state cannot recall n binary values when m < n.
+Interface parameterisation: bits (2500 steps, 1 seed(s))
+Rows = interface width b (bits), columns = n values to retain.
+Prediction: ~1.0 on and above the diagonal b >= n, chance (0.5) below.
+
+  b \ n       2      3      4      5
+------------------------------------
+    1     0.51   0.67   0.63   0.60
+    2     1.00   0.83   0.75   0.71
+    3     1.00   1.00   0.76   0.71
+    4     1.00   1.00   1.00   0.81
+    5     1.00   1.00   0.87   1.00
+
+Verdict per cell (predicted vs observed, threshold 0.9):
+  MISMATCH b=5 n=4: predicted success, observed acc=0.87
+  19/20 cells match the prediction.
+  Cells that would REFUTE the bound (b < n yet accurate): none
+  A failure at b >= n is an optimisation result, not a capacity one;
+  only a success at b < n would contradict Theorem 5.12.

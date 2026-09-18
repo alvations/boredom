@@ -1,0 +1,19 @@
+PART A -- gated dense recurrence == HMM forward algorithm
+  sum-product and max-product match brute force at every (t, j): OK
+  negative control, signed A: sum-product still exact = True (expected True -- the identity is pure algebra)
+                              max-product exact      = False (expected False -- (max,x) needs non-negativity)
+
+PART B -- the bridge from gated linear attention to the HMM
+  B1 gated linear attention: differing rows [1] -> [1]  (non-increasing = True)
+  B1 HMM forward algorithm : differing coords [1] -> [0, 1, 2, 3]  (strictly grows = True)
+  B2 ||Psi_0 Psi_1 - Psi_1 Psi_0||_max = 4.474e-02 (non-commuting = True)
+
+  => A diagonal gate cannot mix state coordinates; a transition
+     matrix must. No injective linear map carries one recurrence
+     into the other, so 'constrain a gated linear RNN and get an
+     HMM' is false. The transition has to be ADDED, not constrained
+     out of a gate that is already diagonal.
+
+====================================================================
+Part A verified (identity holds, against an independent oracle).
+Part B verified (the bridge to linear attention does not exist).

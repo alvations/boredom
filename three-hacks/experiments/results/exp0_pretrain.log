@@ -1,0 +1,24 @@
+corpus: 52822 tokens, vocab 2048, train 47540 / val 5282
+model: L=6 d=128 params=1.71M  head fraction u = 0.153  (Qwen3-0.6B: 0.26)
+  step 75/1500  train 7.220  val 7.219  (ppl 1365.0)  <- best
+  step 150/1500  train 6.340  val 6.649  (ppl 771.8)  <- best
+  step 225/1500  train 5.687  val 6.469  (ppl 644.8)  <- best
+  step 300/1500  train 5.525  val 6.327  (ppl 559.4)  <- best
+  step 375/1500  train 4.846  val 6.203  (ppl 494.5)  <- best
+  step 450/1500  train 4.774  val 6.208  (ppl 496.5)
+  step 525/1500  train 4.450  val 6.103  (ppl 447.1)  <- best
+  step 600/1500  train 3.882  val 6.107  (ppl 448.8)
+  step 675/1500  train 3.496  val 6.066  (ppl 431.0)  <- best
+  step 750/1500  train 3.264  val 6.216  (ppl 500.6)
+  step 825/1500  train 2.837  val 6.214  (ppl 499.9)
+  step 900/1500  train 2.487  val 6.175  (ppl 480.7)
+  step 975/1500  train 2.198  val 6.366  (ppl 581.5)
+  step 1050/1500  train 2.151  val 6.182  (ppl 483.9)
+  step 1125/1500  train 2.057  val 6.249  (ppl 517.4)
+  step 1200/1500  train 1.924  val 6.382  (ppl 591.3)
+  step 1275/1500  train 2.226  val 6.524  (ppl 681.6)
+  step 1350/1500  train 1.617  val 6.415  (ppl 611.2)
+  step 1425/1500  train 1.761  val 6.496  (ppl 662.2)
+  step 1500/1500  train 1.972  val 6.508  (ppl 670.7)
+restored best checkpoint: val 6.066 (ppl 431.0)
+saved /home/user/boredom/three-hacks/experiments/exp0_model.pt

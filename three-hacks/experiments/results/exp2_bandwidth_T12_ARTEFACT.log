@@ -1,0 +1,36 @@
+S_5: 120 states, so the interface needs 6.91 bits
+T=12 steps, streaming Markov schedule (no re-reading the input)
+device=cpu
+
+  b=3 bits < NEEDED:
+      -> acc 0.000
+  b=4 bits < NEEDED:
+      -> acc 0.000
+  b=5 bits < NEEDED:
+      -> acc 0.000
+  b=6 bits < NEEDED:
+      -> acc 0.053
+  b=7 bits >= needed:
+      -> acc 0.000
+  b=8 bits >= needed:
+      -> acc 0.022
+  b=10 bits >= needed:
+      -> acc 0.034
+
+  continuous interface (R^96):
+      -> acc 1.000
+
+   interface    bits     acc   prediction
+         b=3       3   0.000   COLLAPSE
+         b=4       4   0.000   COLLAPSE
+         b=5       5   0.000   COLLAPSE
+         b=6       6   0.053   COLLAPSE
+         b=7       7   0.000   ok
+         b=8       8   0.022   ok
+        b=10      10   0.034   ok
+        R^96      --   1.000   ok
+
+Threshold is b >= log2(5!) = 6.91, i.e. b >= 7.
+Cells that would REFUTE the bound (b < 6.91 yet accurate): none
+If accuracy does not fall there, the bandwidth bound does not bind and
+this thesis loses its only unconditional result.

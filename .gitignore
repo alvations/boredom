@@ -2,10 +2,13 @@
 *.aux
 *.fdb_latexmk
 *.fls
-*.log
 *.out
 *.bbl
 *.blg
+three-hacks/paper/*.log
+
+# Experiment run logs ARE committed -- they are the evidence for the
+# results and methodology sections. Only build logs are ignored.
 
 # Python
 __pycache__/
@@ -14,4 +17,3 @@ __pycache__/
 # Experiment outputs: checkpoints and derived corpora are reproducible
 *.pt
 .corpus_*.txt
-exp*_results.json

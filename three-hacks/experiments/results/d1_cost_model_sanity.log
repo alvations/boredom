@@ -1,0 +1,43 @@
+CHECK 1: at rho=1 the draft IS the target, so S must be exactly 1.000
+
+                   model     cost   yield        S   verdict
+--------------------------------------------------------------
+      original Prop 3.15    1.153     2.0    1.735   IMPOSSIBLE (>1 means free tokens)
+   corrected, with reuse    2.000     2.0    1.000   ok
+     corrected, no reuse    2.000     2.0    1.000   ok
+
+CHECK 2: does cache reuse help? (u=0 so the head does not confound)
+
+      regime    rho  gamma    reuse  no-reuse   better
+------------------------------------------------------------
+   mem-bound   0.25      2     2.25      1.50   no-reuse
+   mem-bound   0.25      4     2.75      2.00   no-reuse
+   mem-bound   0.50      2     2.50      2.00   no-reuse
+   mem-bound   0.50      4     3.50      3.00   no-reuse
+   mem-bound   0.75      2     2.75      2.50   no-reuse
+   mem-bound   0.75      4     4.25      4.00   no-reuse
+     compute   0.25      2     3.00      3.50   reuse
+     compute   0.25      4     5.00      6.00   reuse
+     compute   0.50      2     3.00      4.00   reuse
+     compute   0.50      4     5.00      7.00   reuse
+     compute   0.75      2     3.00      4.50   reuse
+     compute   0.75      4     5.00      8.00   reuse
+
+  Memory-bound: reuse is never better -- splitting verification across
+  two depths streams the lower blocks' weights twice. Compute-bound:
+  reuse wins, because there the cost really is per-position arithmetic.
+
+CHECK 3: the head-cost ceiling, S <= (gamma+1)/(gamma*u + 1)
+
+ gamma   u=0 (no head)    u=0.153   u=0.26 (Qwen)
+--------------------------------------------------
+     1            2.00       1.73            1.59
+     2            3.00       2.30            1.97
+     4            5.00       3.10            2.45
+     8            9.00       4.05            2.92
+
+  Ignoring the unembedding inflates the attainable speedup by up to
+  2.5x at gamma=8. Since the pre-registered kill criterion is S <= 1,
+  an omission of that size and sign can invert the conclusion.
+
+All three checks behave as the corrected theory predicts.
