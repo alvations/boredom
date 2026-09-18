@@ -40,8 +40,12 @@ CKPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exp0_model.pt")
 def load_corpus(root, vocab_size):
     paths = (sorted(glob.glob(os.path.join(root, "**", "*.srt"), recursive=True)) +
              sorted(glob.glob(os.path.join(root, "**", "*.md"), recursive=True)) +
-             sorted(glob.glob(os.path.join(root, "**", "*.py"), recursive=True)) +
              sorted(glob.glob(os.path.join(root, "**", ".corpus_*.txt"), recursive=True)))
+    # NB: deliberately NOT globbing *.py. The experiment sources live inside
+    # this repo, so including them would make the evaluation corpus change
+    # every time an experiment is edited -- which it did, shifting measured
+    # acceptance rates between runs before this was caught.
+    paths = [q for q in paths if os.sep + "experiments" + os.sep not in q]
     text = []
     for p in paths:
         try:
@@ -179,8 +183,11 @@ def main():
                   f"val {vl:.3f}  (ppl {math.exp(min(vl,20)):.1f})")
 
     model.eval()
+    # freeze the exact validation split into the checkpoint so downstream
+    # measurements are reproducible and independent of the working tree
     torch.save({"state": model.state_dict(), "V": V, "d": args.d,
-                "L": args.layers, "ctx": args.ctx, "stoi": stoi}, CKPT)
+                "L": args.layers, "ctx": args.ctx, "stoi": stoi,
+                "val": val_d, "val_loss": vl}, CKPT)
     print(f"saved {CKPT}")
 
 

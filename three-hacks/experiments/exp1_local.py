@@ -159,10 +159,9 @@ def main():
     print(f"model: L={L} d={d} V={V} params={n_all/1e6:.2f}M  u={u:.3f}")
     print(f"||W_U||-diameter bound D_U <= {D_U_bound:.2f}, ||g||_inf={g_inf:.2f}\n")
 
-    # validation text, held out from training
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    ids, _ = load_corpus(root, V)
-    val = ids[-max(2048, len(ids)//10):]
+    # frozen validation split, saved at training time -- NOT re-globbed, so
+    # editing these scripts cannot change the evaluation data
+    val = ck["val"]
     idx = val[: model.ctx].unsqueeze(0).to(device)
 
     # ---------------- A. exactness -----------------------------------------
@@ -244,32 +243,72 @@ def main():
     a_bar = acc["alpha"][best_layer]
     geom = (1 - a_bar ** (args.gamma + 1)) / (1 - a_bar)
     print(f"  measured E[Y]          = {measured:.3f}")
-    print(f"  identity 1 + sum P(A_j) = {exact_pred:.3f}   (must match exactly)")
+    print(f"  identity 1 + sum P(A_j) = {exact_pred:.3f}   (CIRCULAR: same run, "
+          f"bookkeeping check only)")
     print(f"  geometric at alpha_bar  = {geom:.3f}   (alpha_bar={a_bar:.3f})")
     print(f"  P(A_j) = {['%.3f' % x for x in pA]}")
     print(f"  independence would give {['%.3f' % (a_bar**(j+1)) for j in range(args.gamma)]}\n")
 
     # ---------------- D. speedup -------------------------------------------
-    print("D. SPEEDUP (Thm 3.16, Cor 3.17), memory-bound w=1, head cost included")
-    gammas = list(range(1, args.max_gamma + 1))
-    for label, uu in (("this model", u), ("Qwen3-0.6B", 0.26), ("no head (wrong)", 0.0)):
+    # CORRECTED COST (see paper Prop 3.15 erratum). Drafting computes layers
+    # 1..l at positions t..t+gamma-1. Verification needs FULL depth at position
+    # t+gamma for the bonus token -- a position drafting never touched. Two
+    # verification strategies:
+    #   reuse:    skip blocks 1..l at the gamma drafted positions, but that
+    #             splits verification into two passes at different depths
+    #   no-reuse: one batched full-depth pass over all gamma+1 positions
+    # In the memory-bound regime a pass costs a weight stream regardless of how
+    # many positions it covers, so splitting pays twice and reuse LOSES.
+    def cost_reuse(rho, g, w, uu):
+        Dg, Dg1 = w + (1 - w) * g, w + (1 - w) * (g + 1)
+        return (g * ((1 - uu) * rho + uu)                     # drafting
+                + (1 - uu) * (1 - rho) * Dg                   # upper blocks, drafted pos
+                + (1 - uu)                                    # full depth, bonus position
+                + uu * Dg1)                                   # head everywhere
+    def cost_noreuse(rho, g, w, uu):
+        Dg1 = w + (1 - w) * (g + 1)
+        return g * ((1 - uu) * rho + uu) + Dg1
+    def best_S(w, uu, reuse):
+        f = cost_reuse if reuse else cost_noreuse
         best = (0.0, None, None)
         for l in range(1, L + 1):
-            rho = l / L
             a = min(max(acc["alpha"][l], 1e-9), 1 - 1e-9)
             for gmm in gammas:
                 yld = (1 - a ** (gmm + 1)) / (1 - a)
-                cost = gmm * ((1 - uu) * rho + uu) + ((1 - uu) * (1 - rho) + uu)
-                if yld / cost > best[0]:
-                    best = (yld / cost, l, gmm)
-        ceil = (best[2] + 1) / (best[2] * uu + 1)
-        print(f"  u={uu:.3f} ({label:>15}): best S={best[0]:.3f} at layer "
-              f"{best[1]}/{L}, gamma={best[2]}   ceiling={ceil:.2f}")
+                s_ = yld / f(l / L, gmm, w, uu)
+                if s_ > best[0]:
+                    best = (s_, l, gmm)
+        return best
+
+    gammas = list(range(1, args.max_gamma + 1))
+    print("D. SPEEDUP (Thm 3.16, Cor 3.17) with the CORRECTED cost model")
+    print("   sanity: at rho=1 drafting IS ordinary decoding, so S must be 1.000")
+    a_top = 1 - 1e-9
+    for w in (1.0, 0.0):
+        c = min(cost_reuse(1.0, 1, w, u), cost_noreuse(1.0, 1, w, u))
+        print(f"     w={w}: S(rho=1,gamma=1) = {2.0/c:.3f}")
+    print()
+    print(f"{'regime':>10} {'u':>6} {'strategy':>10} {'best S':>8} {'layer':>6} {'gamma':>6}")
+    speed_rows = []
+    for w, wname in ((1.0, "mem-bound"), (0.0, "compute")):
+        for uu, uname in ((u, f"{u:.3f}"), (0.26, "0.260")):
+            for reuse in (False, True):
+                b = best_S(w, uu, reuse)
+                speed_rows.append(dict(w=w, u=uu, reuse=reuse, S=b[0],
+                                       layer=b[1], gamma=b[2]))
+                print(f"{wname:>10} {uname:>6} {'reuse' if reuse else 'no-reuse':>10} "
+                      f"{b[0]:>8.3f} {b[1]:>6} {b[2]:>6}")
+    best_overall = max(r["S"] for r in speed_rows if r["w"] == 1.0)
+    print(f"\n  KILL CRITERION (max S <= 1.0, memory-bound): "
+          f"best S = {best_overall:.3f} -> "
+          f"{'THESIS 1 FAILS on this model' if best_overall <= 1.0 else 'survives'}")
+    print("  Note: untuned early exit, no early-exit auxiliary loss (Rmk 3.22).")
 
     json.dump(dict(L=L, d=d, V=V, u=u, D_U_bound=D_U_bound,
                    exactness=exact_rows, profile=rows,
                    yield_measured=measured, yield_identity=exact_pred,
-                   yield_geometric=geom, pA=pA, best_layer=best_layer),
+                   yield_geometric=geom, pA=pA, best_layer=best_layer,
+                   speedup=speed_rows),
               open(args.out, "w"), indent=2)
     print(f"\nwrote {args.out}")
 
