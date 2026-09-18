@@ -1,0 +1,3 @@
+# exp3_rnn_is_hmm.py needs none of this -- it is stdlib-only by design.
+torch>=2.1
+transformers>=4.51   # Qwen3 support; the 4D attention mask in exp3b is version-sensitive

@@ -19,6 +19,15 @@ Every new topic gets:
 
 ## Topics
 
+### 2026-09-18 — [Three hacks, one complaint](three-hacks/)
+
+- Boredomspiration: three things that annoy me about how we run LLMs, which turned out to be
+  the same complaint about depth, time and state
+- Speculative decoding should be the model drafting for itself; CoT is serial compute squeezed
+  through a 17-bit vocabulary; decoder-only transformers are gated RNNs with unbounded state
+- Proofs in [`three-hacks/theory.md`](three-hacks/theory.md), falsification-first experiments on
+  Qwen3-0.6B in [`three-hacks/experiments/`](three-hacks/experiments/)
+
 ### 2023-12-31 — [The economics of...](the-economics-of/)
 
 - Boredomspiration: the WSJ "The Economics of ..." series on YouTube, playing for hours in the background
