@@ -24,25 +24,33 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from exp3b_recall_capacity import run                                # noqa: E402
 
-N, B, D = 2, 4, 64          # 16 symbols to store 2 bits: capacity is ample
+import argparse
+
+N, B, D = 2, 4, 64          # 16 symbols to store 2 bits: capacity is ample          # 16 symbols to store 2 bits: capacity is ample
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--short", type=int, default=800)
+    ap.add_argument("--long", type=int, default=3000)
+    ap.add_argument("--seeds", type=int, default=3)
+    args = ap.parse_args()
+
     print(f"cell: n={N} values, b={B} bits ({2**B} symbols) -- capacity is ample")
     print("only the training budget varies\n")
-    print(f"{'seed':>6} {'800 steps':>12} {'3000 steps':>12}")
+    print(f"{'seed':>6} {str(args.short)+' steps':>12} {str(args.long)+' steps':>12}")
     print("-" * 32)
     short, long = [], []
-    for seed in (0, 1, 2):
+    for seed in range(args.seeds):
         row = []
-        for steps in (800, 3000):
+        for steps in (args.short, args.long):
             random.seed(seed); torch.manual_seed(seed)
             row.append(run(N, B, D, steps, 128, "cpu", mode="onehot"))
         short.append(row[0]); long.append(row[1])
         print(f"{seed:>6} {row[0]:>12.3f} {row[1]:>12.3f}")
 
-    print(f"\n  mean at  800 steps: {sum(short)/len(short):.3f}")
-    print(f"  mean at 3000 steps: {sum(long)/len(long):.3f}")
+    print(f"\n  mean at {args.short:>5} steps: {sum(short)/len(short):.3f}")
+    print(f"  mean at {args.long:>5} steps: {sum(long)/len(long):.3f}")
     print("\n  A capacity ceiling would not move with the step count. This one does,")
     print("  so the 800-step failures said nothing about Theorem 5.12.")
 

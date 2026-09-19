@@ -29,20 +29,37 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from exp3b_recall_capacity import run                                # noqa: E402
 
+import argparse
+
 D, STEPS = 96, 3000
 
 
 def main():
-    print("Same capacity (b bits), two parameterisations.\n")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--steps", type=int, default=STEPS)
+    ap.add_argument("--d", type=int, default=D)
+    args = ap.parse_args()
+
+    print(f"Same capacity (b bits), two parameterisations. "
+          f"({args.steps} steps)\n")
     print(f"{'n':>4} {'b':>4} {'predicted':>11} {'onehot':>9} {'bits':>9}")
     print("-" * 42)
+    results = {}
     for n, b in ((2, 2), (3, 3), (4, 4), (3, 2), (4, 3)):
         row = {}
         for mode in ("onehot", "bits"):
             random.seed(0); torch.manual_seed(0)
-            row[mode] = run(n, b, D, STEPS, 128, "cpu", mode=mode)
+            row[mode] = run(n, b, args.d, args.steps, 128, "cpu", mode=mode)
+        results[(n, b)] = row
         pred = "success" if b >= n else "FAIL"
         print(f"{n:>4} {b:>4} {pred:>11} {row['onehot']:>9.3f} {row['bits']:>9.3f}")
+
+    easiest = results.get((2, 2), {}).get("bits", 0.0)
+    if easiest < 0.9:
+        print(f"\n  UNDERTRAINED: the easiest cell (n=2, b=2, bits) scored "
+              f"{easiest:.3f}.")
+        print("  Raise --steps before reading anything into the comparison; see d2.")
+        return
 
     print("\n  Capacity is identical down each pair of columns; only trainability")
     print("  differs. The b=n rows are where the two diverge, and those are")

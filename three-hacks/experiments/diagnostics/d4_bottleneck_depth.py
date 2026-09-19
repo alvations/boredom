@@ -38,19 +38,28 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from exp2_latent_vs_cot import StepMachine, train                    # noqa: E402
 
+import argparse
+
 N, D, STEPS = 5, 96, 3000
 NEED = math.log2(math.factorial(N))          # 6.91 bits for S_5
 
 
 def main():
-    print(f"S_{N}: the interface needs log2({N}!) = {NEED:.2f} bits\n")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--steps", type=int, default=STEPS)
+    ap.add_argument("--d", type=int, default=D)
+    args = ap.parse_args()
+
+    print(f"S_{N}: the interface needs log2({N}!) = {NEED:.2f} bits "
+          f"({args.steps} steps)\n")
     print(f"{'T':>4} {'b':>4} {'b >= need?':>11} {'acc':>8}   reading")
     print("-" * 58)
     cells = [(4, 7), (4, 15), (12, 7), (12, 15), (12, 20)]
     got = {}
     for T, b in cells:
         random.seed(0); torch.manual_seed(0)
-        acc = train(StepMachine(N, D, bits=b), N, T, STEPS, 64, "cpu", quiet=True)
+        acc = train(StepMachine(N, args.d, bits=b), N, T, args.steps, 64,
+                    "cpu", quiet=True)
         got[(T, b)] = acc
         note = ""
         if b >= NEED and acc < 0.5:
@@ -58,6 +67,20 @@ def main():
         elif b >= NEED and acc >= 0.85:
             note = "succeeds, as bandwidth predicts"
         print(f"{T:>4} {b:>4} {'yes' if b >= NEED else 'no':>11} {acc:>8.3f}   {note}")
+
+    # Guard: if even the shallow, wide cell fails, the run is undertrained and
+    # NOTHING here is interpretable -- including the T-vs-b comparison. This
+    # script exists to warn against reading undertrained failures as capacity
+    # results, so it must not commit that error itself.
+    reference = got.get((4, 15), 0.0)
+    if reference < 0.5:
+        print(f"\n  UNDERTRAINED: the reference cell (T=4, b=15 -- shallowest")
+        print(f"  bottleneck, widest channel) scored {reference:.3f}. If that cell")
+        print("  cannot be learned, no comparison below it means anything. Raise")
+        print("  --steps (3000 is the default for a reason) and see d2. Treating")
+        print("  these numbers as evidence would repeat the exact mistake this")
+        print("  script documents.")
+        return
 
     print("\n  Holding b fixed and raising T destroys accuracy:")
     for b in (7, 15):
