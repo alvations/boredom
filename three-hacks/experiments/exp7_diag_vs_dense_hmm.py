@@ -231,17 +231,28 @@ def main():
     gap_dense = results[("dense-1", d0)]
     print(f"At matched state size d={d0}:")
     print(f"  dense-1 excess {gap_dense:.4f}   diag-1 excess {gap_diag:.4f}")
-    if gap_diag < 0.02 and gap_dense < 0.02:
-        print("  => DISPROOF: a single diagonal layer approximates the HMM as well")
-        print("     as a dense one. Thm 5.8 is exact-only and practically empty.")
+    # GUARD. If the belief collapses, the task never needs mixing and NO result
+    # here bears on whether Thm 5.8 has bite -- a diagonal recurrence matching
+    # a dense one on such an HMM is expected and uninformative. Only a
+    # high-entropy HMM, where the hidden state must be tracked through the
+    # transition structure, can distinguish the two. The peaked random HMM
+    # produced a confident 'DISPROOF' before this guard existed.
+    needs_mixing = H >= 0.3 * math.log(args.m)
+    if not needs_mixing:
+        print(f"  belief entropy {H:.3f} is low: the task needs no mixing, so this")
+        print("  HMM cannot test the theorem's bite either way. Run --hmm cyclic.")
+    elif gap_diag < 0.02 and gap_dense < 0.02:
+        print("  => DISPROOF of practical bite: on an HMM that REQUIRES mixing, a")
+        print("     single diagonal layer approximates the optimum as well as a")
+        print("     dense one. Thm 5.8 is exact-only and practically empty.")
     elif gap_dense < 0.02 and gap_diag > 3 * max(gap_dense, 0.005):
-        print("  => Thm 5.8 has bite: dense reaches the optimum, diagonal cannot.")
-        deeper = [results[(f'diag-{L}', d0)] for L in (2, 3)]
-        print(f"     diag-2 {deeper[0]:.4f}   diag-3 {deeper[1]:.4f}  "
-              f"-- {'depth closes the gap' if deeper[1] < gap_diag / 2 else 'depth does not fully close it'}")
+        print("  => Thm 5.8 has bite: dense reaches the optimum, diagonal cannot,")
+        print("     on an HMM whose belief must be tracked through transitions.")
+        deeper = [results[(f"diag-{L}", d0)] for L in (2, 3)]
+        print(f"     diag-2 {deeper[0]:.4f}   diag-3 {deeper[1]:.4f}  -- "
+              f"{'depth closes the gap' if deeper[1] < gap_diag / 2 else 'depth does not fully close it'}")
     else:
         print("  => inconclusive at this budget; see the d=4m rows and raise --steps")
-
 
 if __name__ == "__main__":
     main()

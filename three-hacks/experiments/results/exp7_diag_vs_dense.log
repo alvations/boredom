@@ -1,0 +1,20 @@
+HMM: m=4 states, 3 symbols, T=32
+optimal (forward algorithm) NLL = 0.7704   uniform = 1.0986   headroom = 0.3282
+
+    model    d  test NLL   excess  % headroom
+------------------------------------------------
+  dense-1    4    0.7708   0.0003        0.1%
+   diag-1    4    0.7709   0.0005        0.2%
+   diag-2    4    0.7707   0.0003        0.1%
+   diag-3    4    0.7707   0.0003        0.1%
+
+  dense-1   16    0.7706   0.0002        0.0%
+   diag-1   16    0.7707   0.0003        0.1%
+   diag-2   16    0.7707   0.0002        0.1%
+   diag-3   16    0.7706   0.0002        0.1%
+
+At matched state size d=4:
+  dense-1 excess 0.0003   diag-1 excess 0.0005
+  => DISPROOF: a single diagonal layer approximates the HMM as well
+     as a dense one. Thm 5.8 is exact-only and practically empty.
+E7DONE
