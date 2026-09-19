@@ -151,20 +151,23 @@ at $\ell=1$ top-$1$ agreement rises sixfold while $\alpha_1$ rises by half.
 Third, and decisively for the thesis, the corrected memory-bound speedup
 becomes
 \begin{center}
-\begin{tabular}{lrr}
+\begin{tabular}{lrrr}
 \toprule
-head fraction & untuned & early-exit trained \\
+head fraction & untuned & trained, 600 steps & trained, early-stopped \\
+ & & ($\Delta$val $+0.08$) & ($\Delta$val $-0.03$) \\
 \midrule
-$u = 0.153$ (this model) & 1.026 & 1.146 \\
-$u = 0.260$ (Qwen3-0.6B) & 1.000 & 1.072 \\
+$u = 0.153$ (this model) & 1.026 & 1.146 & 1.097 \\
+$u = 0.260$ (Qwen3-0.6B) & 1.000 & 1.072 & 1.044 \\
 \bottomrule
 \end{tabular}
 \end{center}
 At Qwen's head fraction the optimum was previously the degenerate $\rho=1$; it
-is now a genuine early exit at $\ell=1$. Thesis 1 therefore survives as an
-engineering claim on this model --- by $7\%$, after training, at a cost of
-$0.08$ in final-layer loss, on a model whose acceptance rates are inflated by
-its weakness. We would not build on a margin of that size, but the sign is
+is now a genuine early exit. The early-stopped run, which keeps the state of
+best final-layer validation loss (step $100$, an \emph{improvement} of $0.03$),
+still clears $1$ at $1.044$; the extra three points of the full run are bought
+with $0.08$ of final-layer loss. Thesis 1 therefore survives as an engineering
+claim on this model at zero quality cost --- by $4\%$, after training, on a
+model whose acceptance rates are inflated by its weakness. We would not build on a margin of that size, but the sign is
 the one Remark~\ref{rem:offdist} predicted, and the mechanism (falling
 $T_\ell$) is the one the theory names.
 
@@ -265,6 +268,54 @@ naive reading favoured our own hypothesis, which is precisely why we pursued it.
 We suggest the general check: before reading a discrete-bottleneck failure as
 evidence of a capacity bound, verify that the failure is monotone in the
 bottleneck width and absent at widths well above the claimed threshold.
+
+\subsection{Theorem~\ref{thm:noembed} has bite, and where}
+\label{sec:exp-bite}
+
+Theorem~\ref{thm:noembed} is an exact-embedding result and says nothing about
+approximation. If a diagonally-gated recurrence approximates HMM predictions
+to within noise, the theorem is true and practically empty. We trained
+input-controlled affine recurrences (Proposition~\ref{prop:affine}) with
+diagonal or dense action on sequences from a known HMM and scored each by its
+excess next-symbol NLL over the forward algorithm, which is Bayes-optimal.
+
+The first HMM we tried nearly misled us in the direction \emph{against} our
+own result. On a random HMM with sharply peaked rows, a single diagonal layer
+at matched state size reached $0.2\%$ of the available headroom, the same as a
+dense layer, and the script printed a disproof. But that HMM's mean belief
+entropy is near zero: the posterior collapses after a symbol or two, no
+mixing is ever needed, and a diagonal recurrence matching a dense one is
+expected. The script now measures belief entropy and refuses to rule unless
+the hidden state must actually be tracked. Table~\ref{tab:bite} is the HMM
+that can decide it: transitions are a noisy cyclic permutation, emissions are
+mildly informative, and the belief \emph{rotates} --- the transition operator
+has complex eigenvalues, exactly the case the proof of
+Theorem~\ref{thm:noembed}(b) singles out.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+ & dense-1 & diag-1 & diag-2 & diag-3 \\
+\midrule
+$d = m = 4$ & \textbf{5.8\%} & 55.8\% & 53.1\% & 46.6\% \\
+$d = 16$ & \textbf{2.9\%} & 38.1\% & 27.5\% & 25.2\% \\
+\bottomrule
+\end{tabular}
+\caption{Excess NLL as a percentage of headroom (uniform minus optimal) on the
+cyclic HMM, $m=4$ states, belief entropy $0.923$ of $\log 4 = 1.386$. A single
+dense layer captures $94\%$ of what is learnable; a single diagonal layer
+captures $44\%$. Neither two extra layers nor fourfold width closes the gap.}
+\label{tab:bite}
+\end{table}
+
+The exact non-embeddability therefore translates into a tenfold gap in excess
+loss, and it appears precisely where the theory locates it: when the belief
+must be carried through a mixing transition rather than re-identified from
+recent symbols. This is the empirical content of Remark~\ref{rem:thesis3}.
+Diagonal gating is not a harmless parameterisation choice on such sequences;
+it is the thing that prevents the model from tracking the state, and the
+remedy is a dense transition, not depth.
 
 \subsection{Capacity: the bound is never violated}
 \label{sec:exp-capacity}

@@ -158,15 +158,33 @@ acceptance rates and gives only six choices of exit depth. Full write-up with ta
 | No embedding (Thm 5.8) | **Confirmed**, both obstructions |
 | Recall ceiling (Thm 5.12) | **Confirmed**, 19/20 cells, no violation |
 | Interface bandwidth (Thm 4.10) | **Confirmed**, monotone in width, no violation |
+| Early-exit training (Rmk 3.22) | **Rescues thesis 1**: S=1.044 at Qwen's head fraction, zero quality cost |
+| Discretisation as error correction (OP 4.14) | **Mis-posed.** No lock-in, no interior `k`; binary switch on rate vs drift |
+| Thm 5.8 practical bite | **Confirmed** on a cyclic HMM: 10× excess-NLL gap, depth and width don't close it |
 
 ### The headline number
 
-At this model's head fraction `u=0.153`, the best memory-bound speedup from early-exit
-self-drafting is **1.026**. At Qwen3-0.6B's `u=0.26`, **no early-exit layer beats 1.0 at
-all** — the optimum retreats to the degenerate ρ=1. The unembedding cost alone decides it.
-A 2.6% gain on a model whose acceptance rates are already inflated is not something to
-build on. Thesis 1 now rests entirely on whether early-exit training moves α, which is
-the open question.
+Untuned, at Qwen3-0.6B's head fraction `u=0.26`, **no early-exit layer beats 1.0** — the
+optimum is the degenerate ρ=1, and the unembedding cost alone decides it. Then 600 steps of
+auxiliary early-exit loss, early-stopped on final-layer validation (which *improved* by
+0.03): **S = 1.044** at `u=0.26`, a real exit at layer 2. Tail energy fell at every layer —
+the mechanism Thm 3.7 names. Without early stopping, 1.072 at +0.08 loss.
+
+So thesis 1 survives on this model as an engineering claim, at zero quality cost, by 4%.
+That is the predicted sign and the predicted mechanism; it is not a margin to build on,
+and the model's weakness inflates every acceptance rate in it.
+
+### Thesis 3's theorem is not empty
+
+Thm 5.8 says a diagonal gate can't *exactly* embed the HMM forward algorithm. That could
+have been true and irrelevant. On a **cyclic** HMM — belief entropy 0.92 of max 1.39, so
+the hidden state has to be tracked through a rotating transition — a single dense layer
+captures 94% of the learnable headroom and a single diagonal layer captures 44%. Three
+diagonal layers: 53%. Four times the width: 62%. Neither closes it.
+
+The first HMM tried said the opposite and was wrong: sharply peaked rows collapse the
+belief after a symbol, no mixing is ever needed, and a "disproof" printed. The script now
+measures belief entropy and refuses to rule unless mixing is required.
 
 Also worth recording: at layer 1, sampling-mode acceptance is 0.327 but greedy top-1
 agreement is only **0.052**. Those govern different deployment modes, and a 6× gap means
@@ -189,6 +207,16 @@ an acceptance rate that reads as tolerable for sampled decoding is near-useless 
    predicted — it *overstates* yield by 12%. The Jensen argument is about variation between
    contexts; within a round each accepted draft moves the model onto its own continuation,
    where a shallow draft agrees less.
+
+### Open Problem 4.14 was the wrong question
+
+Exact closed forms: a projected bit flips back with the same probability it flipped, so
+the state is a symmetric two-state chain and **projection never locks errors in**. With a
+rate-sufficient codebook, `k=1` — discretise every step — wins at every noise level. With
+an insufficient codebook the trade-off is real but **binary**: never project until drift
+`σ√T` exceeds the rounding error, then every step. No clear interior-`k` winner in any of
+140 cells at 20k trials. The question isn't "how often"; it's "does the rate clear the
+task's precision", and the learned-codebook version is the only part still open.
 
 ### Three times an optimisation artefact impersonated a capacity result
 
