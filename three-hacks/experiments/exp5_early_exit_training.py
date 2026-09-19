@@ -56,6 +56,10 @@ def main():
     ap.add_argument("--lam", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--bs", type=int, default=16)
+    ap.add_argument("--tolerance", type=float, default=0.05,
+                    help="a step is kept if final-layer val loss is within this "
+                         "of the best so far; lets the auxiliary loss trade a "
+                         "little final quality for decodable intermediates")
     ap.add_argument("--layers", type=int, nargs="+", default=None,
                     help="which intermediate layers get the auxiliary loss; "
                          "default: all of 1..L-1")
@@ -94,6 +98,11 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr,
                                                 total_steps=args.steps)
+    # Early stopping on the FINAL layer's validation loss. The base model was
+    # early-stopped on a 47k-token corpus; continued training overfits it
+    # within a few hundred steps whatever the auxiliary loss does, and a
+    # speedup measured on an overfit model is bought with quality.
+    best = (v0, {k: v.detach().clone() for k, v in model.state_dict().items()}, 0)
     model.train()
     for i in range(args.steps):
         x = get_batch(train_d, args.bs, model.ctx, "cpu")
@@ -101,9 +110,23 @@ def main():
         opt.zero_grad(); loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); sched.step()
-        if (i + 1) % max(1, args.steps // 6) == 0:
+        if (i + 1) % max(1, args.steps // 12) == 0:
+            vl = val_final_loss(6)
+            flag = ""
+            if vl < best[0] + args.tolerance:
+                best = (vl, {k: v.detach().clone()
+                             for k, v in model.state_dict().items()}, i + 1)
+                flag = "  <- kept"
             print(f"  step {i+1}/{args.steps}  final {fin.item():.3f}  "
-                  f"aux {aux.item():.3f}  val {val_final_loss(4):.3f}")
+                  f"aux {aux.item():.3f}  val {vl:.3f}{flag}")
+
+    if best[2] == 0:
+        print("\nno step improved final-layer val loss within tolerance; keeping "
+              "the LAST state anyway so the auxiliary loss has had some effect, "
+              "but the quality warning below applies")
+    else:
+        print(f"\nrestoring step {best[2]} (val {best[0]:.3f})")
+        model.load_state_dict(best[1])
 
     v1 = val_final_loss()
     print(f"\nafter:  final-layer val loss {v1:.3f} (ppl {math.exp(v1):.1f})  "
