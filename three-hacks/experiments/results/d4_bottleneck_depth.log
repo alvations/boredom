@@ -1,0 +1,18 @@
+S_5: the interface needs log2(5!) = 6.91 bits (3000 steps)
+
+   T    b  b >= need?      acc   reading
+----------------------------------------------------------
+   4    7         yes    0.872   succeeds, as bandwidth predicts
+   4   15         yes    1.000   succeeds, as bandwidth predicts
+  12    7         yes    0.000   fails DESPITE ample bits -> not bandwidth
+  12   15         yes    0.000   fails DESPITE ample bits -> not bandwidth
+  12   20         yes    0.037   fails DESPITE ample bits -> not bandwidth
+
+  Holding b fixed and raising T destroys accuracy:
+    b= 7: T=4 -> 0.872   T=12 -> 0.000
+    b=15: T=4 -> 1.000   T=12 -> 0.000
+
+  That is optimisation, not capacity: the channel width never changed.
+  Run the real sweep at T=4, where the optimiser succeeds and the
+  bandwidth bound is the binding constraint:
+    python3 ../exp2_latent_vs_cot.py --n 5 --T 4 --steps 4000 --seeds 2 --sweep-v --bit-list 3 4 5 6 7 8 15

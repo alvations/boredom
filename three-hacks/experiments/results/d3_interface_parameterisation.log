@@ -1,0 +1,16 @@
+Same capacity (b bits), two parameterisations. (3000 steps)
+
+   n    b   predicted    onehot      bits
+------------------------------------------
+   2    2     success     0.757     1.000
+   3    3     success     0.498     1.000
+   4    4     success     0.545     1.000
+   3    2        FAIL     0.516     0.752
+   4    3        FAIL     0.782     0.748
+
+  Capacity is identical down each pair of columns; only trainability
+  differs. The b=n rows are where the two diverge, and those are
+  exactly the rows that decide whether the bound looks tight.
+  Neither parameterisation ever succeeds below the diagonal, which is
+  the only direction that could refute a lower bound.
+ALLDONE

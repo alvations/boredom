@@ -1,0 +1,14 @@
+cell: n=2 values, b=4 bits (16 symbols) -- capacity is ample
+only the training budget varies
+
+  seed    800 steps   3000 steps
+--------------------------------
+     0        0.495        1.000
+     1        0.525        1.000
+     2        0.999        1.000
+
+  mean at   800 steps: 0.673
+  mean at  3000 steps: 1.000
+
+  A capacity ceiling would not move with the step count. This one does,
+  so the 800-step failures said nothing about Theorem 5.12.
