@@ -1,0 +1,79 @@
+A1 -- SUFFICIENT rate: 8 bits as signs, codebook {-1,+1}, T=64. Exact closed form; Monte Carlo in brackets for one row.
+cells: P(all bits correct). k=0 means never project.
+
+ sigma      k=1     k=2     k=4     k=8    k=16    k=32    none   best
+------------------------------------------------------------------------
+  0.00    1.000   1.000   1.000   1.000   1.000   1.000   1.000   k=1
+  0.05    1.000   1.000   1.000   1.000   1.000   0.997   0.951   k=1
+  0.10    1.000   1.000   1.000   0.987   0.821   0.540   0.409   k=1
+  0.15    1.000   1.000   0.947   0.564   0.235   0.152   0.164   k=1
+  0.20    1.000   0.949   0.468   0.115   0.053   0.054   0.084   k=1
+  0.30    0.805   0.131   0.017   0.009   0.010   0.017   0.037   k=1
+  0.40    0.076   0.007   0.005   0.005   0.006   0.009   0.023   k=1
+    MC    1.000   1.000   0.930   0.607   0.256   0.138   0.154   (sigma=0.15)
+
+A2 -- RATE-LIMITED: one analog value in [-1,1], recover to within eps=0.05, T=64.
+Codebook = grid of L levels; projection rounds to the nearest level.
+Half-spacing above eps means projection alone breaks the task.
+
+L=  4 levels (2 bits), half-spacing 0.333 > eps: rate INSUFFICIENT
+ sigma      k=1     k=2     k=4     k=8    k=16    k=32    none   best
+ 0.002    0.140   0.148   0.151   0.154   0.146   0.160   0.998   none
+ 0.005    0.154   0.152   0.151   0.135   0.159   0.152   0.785   none
+ 0.010    0.152   0.169   0.136   0.144   0.155   0.150   0.454   none
+ 0.020    0.145   0.148   0.140   0.145   0.147   0.133   0.243   none
+ 0.050    0.150   0.148   0.149   0.142   0.119   0.098   0.105   k=1
+
+L= 16 levels (4 bits), half-spacing 0.067 > eps: rate INSUFFICIENT
+ sigma      k=1     k=2     k=4     k=8    k=16    k=32    none   best
+ 0.002    0.746   0.748   0.753   0.747   0.768   0.725   0.998   none
+ 0.005    0.742   0.746   0.747   0.723   0.707   0.664   0.778   none
+ 0.010    0.762   0.740   0.712   0.603   0.503   0.447   0.479   k=1
+ 0.020    0.686   0.415   0.285   0.243   0.251   0.243   0.237   k=1
+ 0.050    0.110   0.115   0.109   0.107   0.112   0.122   0.102   k=32
+
+L= 64 levels (6 bits), half-spacing 0.016 < eps: rate sufficient
+ sigma      k=1     k=2     k=4     k=8    k=16    k=32    none   best
+ 0.002    1.000   1.000   1.000   0.998   0.990   0.980   0.998   k=1
+ 0.005    0.996   0.909   0.764   0.716   0.740   0.770   0.792   k=1
+ 0.010    0.468   0.449   0.440   0.482   0.475   0.470   0.479   k=8
+ 0.020    0.259   0.250   0.254   0.243   0.247   0.258   0.252   k=1
+ 0.050    0.114   0.119   0.119   0.128   0.126   0.120   0.102   k=8
+
+L=256 levels (8 bits), half-spacing 0.004 < eps: rate sufficient
+ sigma      k=1     k=2     k=4     k=8    k=16    k=32    none   best
+ 0.002    0.999   0.996   0.991   0.997   0.996   0.997   0.999   k=1
+ 0.005    0.749   0.774   0.785   0.774   0.803   0.805   0.798   k=32
+ 0.010    0.478   0.491   0.482   0.460   0.477   0.472   0.473   k=2
+ 0.020    0.262   0.269   0.264   0.281   0.244   0.271   0.255   k=8
+ 0.050    0.112   0.116   0.131   0.116   0.111   0.124   0.105   k=4
+
+Reading (ties within 0.02 are reported as ties):
+  A1  rate-sufficient bits: k=1 wins at EVERY noise level, no ties.
+      A flipped bit can flip back, so projection does not lock
+      errors in; the lock-in penalty conjectured in the paper does
+      not exist in this model.
+  A2  L=  4 rate INSUFFICIENT: none | none | none | none | tie: k=1,k=2,k=4,k=8
+  A2  L= 16 rate INSUFFICIENT: none | none | k=1 | k=1 | all tied
+  A2  L= 64 rate sufficient  : all tied | k=1 | tie: k=1,k=8,k=16,k=32,none | all tied | tie: k=1,k=2,k=4,k=8,k=16,k=32
+  A2  L=256 rate sufficient  : all tied | tie: k=4,k=16,k=32,none | tie: k=1,k=2,k=4,k=16,k=32,none | tie: k=1,k=2,k=4,k=8,k=32 | tie: k=1,k=2,k=4,k=8,k=32
+
+  No cell has a clear interior-k winner. Wherever a winner is clear it
+  is k=1 or none. The trade-off is real but BINARY, and the switch is
+  in the noise level, not in k: project every step once drift
+  sigma*sqrt(T) exceeds the codebook's rounding error, never before.
+  Open Problem 4.14 asked for an optimal k; the simplest model says
+  the question is whether to discretise at all, decided by rate vs drift.
+
+PART B -- learned: 8 bits, d=32, b=16-bit projection, T=64, 1500 steps
+
+ sigma      k=1     k=4    k=16    none   best
+----------------------------------------------
+  0.00    0.508   0.504   0.504   0.504   k=1
+  0.30    0.503   0.505   0.504   0.506   none
+  0.60    0.501   0.505   0.504   0.504   k=4
+
+  If the learned rows reproduce Part A's shape -- 'none' wins at
+  sigma=0, a finite k wins once noise is present -- the idealised
+  trade-off survives a learned codebook and learned dynamics.
+E6DONE

@@ -195,8 +195,11 @@ def part_b(args):
             self.emb_val = nn.Embedding(2, d)
             self.emb_q = nn.Embedding(n, d)
             self.write = nn.Sequential(nn.Linear(2 * d, 2 * d), nn.GELU(), nn.Linear(2 * d, d))
-            self.G = nn.Linear(d, d)
-            nn.init.eye_(self.G.weight); nn.init.zeros_(self.G.bias)
+            # Idle dynamics are the IDENTITY plus noise, exactly Part A's model.
+            # A first version used tanh(G(s)) with G learned: 64 tanh steps
+            # contract the state to zero and kill the gradient, and every cell
+            # -- including sigma=0 with no projection -- sat at chance. That
+            # was an optimisation failure, not a result about discretisation.
             self.to_bits, self.from_bits = nn.Linear(d, b), nn.Linear(b, d)
             self.read = nn.Sequential(nn.Linear(2 * d, 2 * d), nn.GELU(), nn.Linear(2 * d, 2))
             self.s0 = nn.Parameter(torch.zeros(d))
@@ -211,7 +214,7 @@ def part_b(args):
             for i in range(self.n):                                   # write phase
                 s = s + self.write(torch.cat([self.emb_val(vals[:, i]), s], -1))
             for t in range(1, self.T + 1):                            # noisy idle
-                s = torch.tanh(self.G(s)) + self.sigma * torch.randn_like(s)
+                s = (s + self.sigma * torch.randn_like(s)).clamp(-3, 3)
                 if self.k and t % self.k == 0:
                     s = self.project(s)
             logits = self.read(torch.cat([self.emb_q(q), s], -1))
@@ -233,18 +236,32 @@ def part_b(args):
                          torch.randint(0, args.n, (256,)))[1].item() for _ in range(8)) / 8
 
     ks = [1, 4, 16, 0]
+    TIE = 0.03
     print(f"\nPART B -- learned: {args.n} bits, d=32, b={2*args.n}-bit projection, "
-          f"T={args.T}, {args.steps} steps\n")
-    print(f"{'sigma':>6} " + "".join(f"{('k='+str(k)) if k else 'none':>8}" for k in ks) + "   best")
-    print("-" * 46)
+          f"T={args.T}, {args.steps} steps, identity idle dynamics\n")
+    print(f"{'sigma':>6} " + "".join(f"{('k='+str(k)) if k else 'none':>8}" for k in ks) + "   verdict")
+    print("-" * 52)
+    rows = {}
     for sigma in args.sigmas_b:
         row = [run(k, sigma) for k in ks]
-        b = ks[max(range(len(ks)), key=lambda i: row[i])]
-        print(f"{sigma:>6.2f} " + "".join(f"{v:>8.3f}" for v in row)
-              + f"   {('k='+str(b)) if b else 'none'}")
-    print("\n  If the learned rows reproduce Part A's shape -- 'none' wins at")
-    print("  sigma=0, a finite k wins once noise is present -- the idealised")
-    print("  trade-off survives a learned codebook and learned dynamics.")
+        rows[sigma] = row
+        top = max(row)
+        winners = [ks[i] for i, v in enumerate(row) if top - v < TIE]
+        v = ("all tied" if len(winners) == len(ks) else
+             "tie: " + ",".join(("k=%d" % w) if w else "none" for w in winners)
+             if len(winners) > 1 else (("k=%d" % winners[0]) if winners[0] else "none"))
+        print(f"{sigma:>6.2f} " + "".join(f"{x:>8.3f}" for x in row) + f"   {v}")
+
+    # GUARD: the reference cell is sigma=0, no projection -- the easiest
+    # configuration there is. If it cannot be learned, nothing else here
+    # carries information and reporting winners would narrate noise.
+    ref = rows[args.sigmas_b[0]][ks.index(0)] if args.sigmas_b[0] == 0 else None
+    if ref is not None and ref < 0.9:
+        print(f"\n  UNDERTRAINED: reference cell (sigma=0, none) scored {ref:.3f}.")
+        print("  No comparison above is interpretable. Raise --steps.")
+        return
+    print("\n  Reading against Part A: with a rate-sufficient codebook, projection")
+    print("  should never hurt at sigma=0 and should win once noise is present.")
 
 
 def main():
