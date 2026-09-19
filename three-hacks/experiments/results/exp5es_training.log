@@ -1,0 +1,21 @@
+before: final-layer val loss 6.114 (ppl 452.2)
+auxiliary loss on layers [1, 2, 3, 4, 5], lambda=0.5
+
+  step 50/600  final 3.400  aux 4.694  val 6.048  <- kept
+  step 100/600  final 3.216  aux 4.227  val 5.953  <- kept
+  step 150/600  final 3.046  aux 3.974  val 6.180
+  step 200/600  final 3.265  aux 3.957  val 6.090
+  step 250/600  final 3.129  aux 3.842  val 6.284
+  step 300/600  final 3.243  aux 3.982  val 6.306
+  step 350/600  final 2.808  aux 3.740  val 6.203
+  step 400/600  final 2.717  aux 3.676  val 6.265
+  step 450/600  final 2.797  aux 3.653  val 6.189
+  step 500/600  final 2.869  aux 3.755  val 6.178
+  step 550/600  final 2.496  aux 3.623  val 6.132
+  step 600/600  final 2.649  aux 3.729  val 6.245
+
+restoring step 100 (val 5.953)
+
+after:  final-layer val loss 6.080 (ppl 437.2)  delta -0.034
+saved /home/user/boredom/three-hacks/experiments/exp5_model.pt
+now run: python3 exp1_local.py --ckpt exp5_model.pt

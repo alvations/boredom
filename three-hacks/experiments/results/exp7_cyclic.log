@@ -1,0 +1,22 @@
+HMM (cyclic): m=4 states, 4 symbols, T=32
+optimal (forward algorithm) NLL = 1.3446   uniform = 1.3863   headroom = 0.0417
+mean belief entropy = 0.923 nats of max 1.386  (hidden state must be tracked: mixing needed)
+
+    model    d  test NLL   excess  % headroom
+------------------------------------------------
+  dense-1    4    1.3471   0.0024        5.8%
+   diag-1    4    1.3679   0.0233       55.8%
+   diag-2    4    1.3668   0.0221       53.1%
+   diag-3    4    1.3640   0.0194       46.6%
+
+  dense-1   16    1.3458   0.0012        2.9%
+   diag-1   16    1.3605   0.0159       38.1%
+   diag-2   16    1.3561   0.0115       27.5%
+   diag-3   16    1.3551   0.0105       25.2%
+
+At matched state size d=4:
+  dense-1 excess 0.0024   diag-1 excess 0.0233
+  => Thm 5.8 has bite: dense reaches the optimum, diagonal cannot,
+     on an HMM whose belief must be tracked through transitions.
+     diag-2 0.0221   diag-3 0.0194  -- depth does not fully close it
+E7CDONE
