@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/user/boredom/three-hacks/experiments/exp5_early_exit_training.py", line 123, in <module>
+    main()
+  File "/home/user/boredom/three-hacks/experiments/exp5_early_exit_training.py", line 76, in main
+    assert torch.equal(ids[-len(val):], val), "corpus drifted; val split mismatch"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: corpus drifted; val split mismatch

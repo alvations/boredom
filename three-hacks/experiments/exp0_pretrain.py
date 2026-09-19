@@ -200,9 +200,13 @@ def main():
     model.eval()
     # freeze the exact validation split into the checkpoint so downstream
     # measurements are reproducible and independent of the working tree
+    # Both splits go in the checkpoint. The corpus globs *.md files in this
+    # repo, so any later edit to a README changes what load_corpus returns;
+    # a fine-tuning script that re-globbed would train on drifted data. exp5
+    # hit exactly this and its guard caught it.
     torch.save({"state": model.state_dict(), "V": V, "d": args.d,
                 "L": args.layers, "ctx": args.ctx, "stoi": stoi,
-                "val": val_d, "val_loss": vl}, CKPT)
+                "train": train_d, "val": val_d, "val_loss": vl}, CKPT)
     print(f"saved {CKPT}")
 
 

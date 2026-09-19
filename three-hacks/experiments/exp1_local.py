@@ -37,8 +37,8 @@ import torch
 from exp0_pretrain import TinyLM, load_corpus, CKPT
 
 
-def load_model(device):
-    ck = torch.load(CKPT, map_location=device, weights_only=False)
+def load_model(device, path=CKPT):
+    ck = torch.load(path, map_location=device, weights_only=False)
     m = TinyLM(ck["V"], ck["d"], ck["L"], ctx=ck["ctx"]).to(device).eval()
     m.load_state_dict(ck["state"])
     return m, ck
@@ -142,12 +142,15 @@ def main():
     ap.add_argument("--rounds", type=int, default=120)
     ap.add_argument("--max-gamma", type=int, default=8)
     ap.add_argument("--out", default="exp1_local_results.json")
+    ap.add_argument("--ckpt", default=CKPT,
+                    help="checkpoint to measure; exp5 writes an early-exit-trained one")
     args = ap.parse_args()
 
     device = "cpu"
     torch.manual_seed(0)
     rng = torch.Generator(device=device); rng.manual_seed(0)
-    model, ck = load_model(device)
+    model, ck = load_model(device, args.ckpt)
+    print(f"checkpoint: {args.ckpt}")
     L, V, d = model.L, model.V, model.d
 
     n_all = sum(p.numel() for p in model.parameters())
