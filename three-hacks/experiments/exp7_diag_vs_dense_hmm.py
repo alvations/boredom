@@ -38,12 +38,50 @@ import torch.nn.functional as F
 
 # ------------------------------------------------------------------ HMM data
 
-def make_hmm(m, n_obs, rng, peaked=3.0):
-    """Row-stochastic A, B with some structure so the task is not trivial."""
-    def rows(r, c):
-        M = torch.rand(r, c, generator=rng) ** peaked + 1e-3
-        return M / M.sum(1, keepdim=True)
-    return rows(m, m), rows(m, n_obs), torch.full((m,), 1.0 / m)
+def make_hmm(m, n_obs, rng, kind="peaked", peaked=3.0, delta=0.1, q=0.5):
+    """Row-stochastic A, B.
+
+    peaked: random, sharply peaked rows. States are quickly identifiable from
+            recent symbols, so the belief collapses and little MIXING is ever
+            needed -- a diagonal recurrence can do well here without
+            contradicting Thm 5.8, which is about exact embedding.
+    cyclic: A = (1-delta) * cyclic permutation + delta * uniform, and each
+            state prefers its own symbol only mildly (prob q). The belief
+            ROTATES through the states; the transition operator has complex
+            eigenvalues, which a real diagonal gate cannot represent. This is
+            the case Thm 5.8's proof (b) singles out, and the honest stress
+            test of whether the theorem has practical bite.
+    """
+    if kind == "peaked":
+        def rows(r, c):
+            M = torch.rand(r, c, generator=rng) ** peaked + 1e-3
+            return M / M.sum(1, keepdim=True)
+        return rows(m, m), rows(m, n_obs), torch.full((m,), 1.0 / m)
+    P = torch.zeros(m, m)
+    for i in range(m):
+        P[i, (i + 1) % m] = 1.0
+    A = (1 - delta) * P + delta / m
+    B = torch.full((m, n_obs), (1 - q) / max(n_obs - 1, 1))
+    for i in range(m):
+        B[i, i % n_obs] = q
+    B = B / B.sum(1, keepdim=True)
+    return A, B, torch.full((m,), 1.0 / m)
+
+
+@torch.no_grad()
+def belief_entropy(A, B, pi, obs):
+    """Mean entropy (nats) of the normalised forward posterior. Near 0 means the
+    belief collapses -- the task needs no mixing. Near log(m) means the hidden
+    state is genuinely uncertain and must be TRACKED through transitions."""
+    n, T = obs.shape
+    alpha = pi.expand(n, -1) * B[:, obs[:, 0]].T
+    alpha = alpha / alpha.sum(1, keepdim=True)
+    H = 0.0
+    for t in range(1, T):
+        alpha = (alpha @ A) * B[:, obs[:, t]].T
+        alpha = alpha / alpha.sum(1, keepdim=True)
+        H += -(alpha * torch.log(alpha + 1e-12)).sum(1).mean().item()
+    return H / (T - 1)
 
 
 def sample_hmm(A, B, pi, T, n_seq, rng):
@@ -152,17 +190,23 @@ def main():
     ap.add_argument("--dims", type=int, nargs="+", default=None,
                     help="state sizes to try; default: m and 4m")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--hmm", default="peaked", choices=("peaked", "cyclic"))
+    ap.add_argument("--delta", type=float, default=0.1, help="cyclic: transition noise")
+    ap.add_argument("--q", type=float, default=0.5, help="cyclic: own-symbol emission prob")
     args = ap.parse_args()
 
     rng = torch.Generator().manual_seed(args.seed)
-    A, B, pi = make_hmm(args.m, args.obs, rng)
+    A, B, pi = make_hmm(args.m, args.obs, rng, kind=args.hmm, delta=args.delta, q=args.q)
     train_d = sample_hmm(A, B, pi, args.T, 4000, rng)
     test_d = sample_hmm(A, B, pi, args.T, 2000, rng)
     opt_nll = optimal_nll(A, B, pi, test_d)
     uniform = math.log(args.obs)
-    print(f"HMM: m={args.m} states, {args.obs} symbols, T={args.T}")
+    H = belief_entropy(A, B, pi, test_d)
+    print(f"HMM ({args.hmm}): m={args.m} states, {args.obs} symbols, T={args.T}")
     print(f"optimal (forward algorithm) NLL = {opt_nll:.4f}   "
-          f"uniform = {uniform:.4f}   headroom = {uniform - opt_nll:.4f}\n")
+          f"uniform = {uniform:.4f}   headroom = {uniform - opt_nll:.4f}")
+    print(f"mean belief entropy = {H:.3f} nats of max {math.log(args.m):.3f}  "
+          f"({'belief collapses: little mixing needed' if H < 0.3 * math.log(args.m) else 'hidden state must be tracked: mixing needed'})\n")
 
     dims = args.dims or [args.m, 4 * args.m]
     configs = [("dense-1", 1, True), ("diag-1", 1, False),

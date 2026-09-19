@@ -112,6 +112,69 @@ gap of more than $6\times$ means an acceptance rate that looks tolerable for
 sampled decoding is close to useless for greedy decoding. Reported acceptance
 rates should always name the mode.
 
+\subsection{Early-exit training rescues thesis 1, marginally}
+\label{sec:exp-eetrain}
+
+Remark~\ref{rem:offdist} located the obstruction to self-drafting in the
+training objective: intermediate layers are never asked to be decodable. We
+tested that claim directly by fine-tuning the same model for $600$ steps with
+an auxiliary early-exit loss, $\mathcal{L} = \mathrm{CE}_L + \tfrac12
+\mathrm{mean}_{\ell<L}\mathrm{CE}_\ell$ through the shared head, and
+re-measuring everything in Sections~\ref{sec:exp-exact}--\ref{sec:exp-cost}.
+Table~\ref{tab:eetrain} gives the per-layer effect.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{crrrrrr}
+\toprule
+$\ell$ & $\alpha_\ell$ before & after & top-1 before & after & $T_\ell$ before & after \\
+\midrule
+1 & 0.327 & 0.483 & 0.052 & 0.312 & 20.2 & 15.3 \\
+2 & 0.383 & 0.586 & 0.115 & 0.354 & 17.8 & 13.0 \\
+3 & 0.424 & 0.677 & 0.167 & 0.521 & 15.4 & 10.8 \\
+4 & 0.520 & 0.751 & 0.271 & 0.745 & 12.6 & 8.6 \\
+5 & 0.693 & 0.844 & 0.552 & 0.839 & 8.1 & 5.8 \\
+\bottomrule
+\end{tabular}
+\caption{Effect of $600$ steps of auxiliary early-exit loss. Acceptance rises
+at every layer, greedy top-$1$ agreement rises far more, and the residual tail
+energy falls at every layer --- the auxiliary loss moves intermediate states
+toward the final one, which is the mechanism by which Theorem~\ref{thm:accept}
+says acceptance is governed. Final-layer validation loss rose by $0.08$.}
+\label{tab:eetrain}
+\end{table}
+
+Three observations. First, exactness is unaffected (TV ratios $1.015$, $0.930$,
+$0.998$), as Theorem~\ref{thm:exact} requires of any draft. Second, the
+sampling-mode/greedy-mode gap of Section~\ref{sec:exp-cost} largely closes:
+at $\ell=1$ top-$1$ agreement rises sixfold while $\alpha_1$ rises by half.
+Third, and decisively for the thesis, the corrected memory-bound speedup
+becomes
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+head fraction & untuned & early-exit trained \\
+\midrule
+$u = 0.153$ (this model) & 1.026 & 1.146 \\
+$u = 0.260$ (Qwen3-0.6B) & 1.000 & 1.072 \\
+\bottomrule
+\end{tabular}
+\end{center}
+At Qwen's head fraction the optimum was previously the degenerate $\rho=1$; it
+is now a genuine early exit at $\ell=1$. Thesis 1 therefore survives as an
+engineering claim on this model --- by $7\%$, after training, at a cost of
+$0.08$ in final-layer loss, on a model whose acceptance rates are inflated by
+its weakness. We would not build on a margin of that size, but the sign is
+the one Remark~\ref{rem:offdist} predicted, and the mechanism (falling
+$T_\ell$) is the one the theory names.
+
+The within-round yield decay of the next section is \emph{stronger} after
+training: measured $\E[Y] = 1.435$ against a geometric $1.882$ at
+$\bar\alpha = 0.483$, with $\Prob[A_1] = 0.340$ already below $\bar\alpha$.
+Acceptance measured on held-out text overstates acceptance during decoding,
+because decoding visits the model's own continuations; the gap widens as the
+draft improves on the text distribution.
+
 \subsection{Yield: acceptance decays faster than geometric}
 
 Running $200$ real speculative rounds at $\ell=1$, $\gamma=4$ gives measured
