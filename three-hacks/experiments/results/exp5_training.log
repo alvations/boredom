@@ -1,3 +1,13 @@
 before: final-layer val loss 6.114 (ppl 452.2)
 auxiliary loss on layers [1, 2, 3, 4, 5], lambda=0.5
 
+  step 100/600  final 3.276  aux 4.272  val 5.960
+  step 200/600  final 3.490  aux 4.204  val 5.964
+  step 300/600  final 2.690  aux 3.657  val 6.285
+  step 400/600  final 2.459  aux 3.450  val 6.246
+  step 500/600  final 2.996  aux 3.765  val 6.424
+  step 600/600  final 2.186  aux 3.334  val 6.605
+
+after:  final-layer val loss 6.194 (ppl 489.9)  delta +0.080
+saved /home/user/boredom/three-hacks/experiments/exp5_model.pt
+now run: python3 exp1_local.py --ckpt exp5_model.pt

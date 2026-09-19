@@ -1,0 +1,50 @@
+checkpoint: exp5_model.pt
+model: L=6 d=128 V=2048 params=1.71M  u=0.153
+||W_U||-diameter bound D_U <= 2.35, ||g||_inf=1.46
+
+A. EXACTNESS (Theorem 3.1) -- speculative sampling must return p_L exactly
+ layer  TV(spec,p_L)  TV(direct,p_L)   ratio  alpha_pred  alpha_obs
+     1       0.01642         0.01619   1.015      0.4818     0.4812
+     3       0.01590         0.01710   0.930      0.6674     0.6676
+     5       0.01671         0.01675   0.998      0.8751     0.8747
+  ratio ~ 1.0 => indistinguishable from direct sampling, i.e. exact.
+  alpha_obs should match alpha_pred = 1 - TV(p_l, p_L).
+
+B. ACCEPTANCE PROFILE (Theorem 3.7)
+  l   rho   alpha   top1      T_l   spread  bound_sp    e^-spr  CS slack
+  1  0.17  0.4826  0.312    15.33     8.13      33.9  2.96e-04      4.2x
+  2  0.33  0.5858  0.354    12.96     6.49      28.0  1.52e-03      4.3x
+  3  0.50  0.6769  0.521    10.76     5.25      22.6  5.27e-03      4.3x
+  4  0.67  0.7513  0.745     8.55     4.09      17.4  1.67e-02      4.3x
+  5  0.83  0.8443  0.839     5.84     2.67      11.6  6.95e-02      4.4x
+  6  1.00  1.0000  1.000     0.00     0.00       0.0  1.00e+00      0.0x
+  'e^-spr' is the bound fed the MEASURED spread: pure softmax slack.
+  'CS slack' is bound_spread/spread: what the D_U step alone gives away.
+
+C. YIELD (Prop 3.11) -- real decoding, layer 1, gamma=4, 200 rounds
+  measured E[Y]          = 1.435
+  identity 1 + sum P(A_j) = 1.435   (CIRCULAR: same run, bookkeeping check only)
+  geometric at alpha_bar  = 1.882   (alpha_bar=0.483)
+  P(A_j) = ['0.340', '0.080', '0.010', '0.005']
+  independence would give ['0.483', '0.233', '0.112', '0.054']
+
+D. SPEEDUP (Thm 3.16, Cor 3.17) with the CORRECTED cost model
+   sanity: at rho=1 drafting IS ordinary decoding, so S must be 1.000
+     w=1.0: S(rho=1,gamma=1) = 1.000
+     w=0.0: S(rho=1,gamma=1) = 0.929
+
+    regime      u   strategy   best S  layer  gamma
+ mem-bound  0.153   no-reuse    1.146      1      1
+ mem-bound  0.153      reuse    1.000      6      1
+ mem-bound  0.260   no-reuse    1.072      1      1
+ mem-bound  0.260      reuse    1.000      6      1
+   compute  0.153   no-reuse    0.667      6      1
+   compute  0.153      reuse    0.929      6      1
+   compute  0.260   no-reuse    0.667      6      1
+   compute  0.260      reuse    0.885      6      1
+
+  KILL CRITERION (max S <= 1.0, memory-bound): best S = 1.146 -> survives
+  Note: untuned early exit, no early-exit auxiliary loss (Rmk 3.22).
+
+wrote results/exp5_measured.json
+E5DONE
