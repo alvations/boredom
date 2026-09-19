@@ -159,7 +159,7 @@ acceptance rates and gives only six choices of exit depth. Full write-up with ta
 | Recall ceiling (Thm 5.12) | **Confirmed**, 19/20 cells, no violation |
 | Interface bandwidth (Thm 4.10) | **Confirmed**, monotone in width, no violation |
 | Early-exit training (Rmk 3.22) | **Rescues thesis 1**: S=1.044 at Qwen's head fraction, zero quality cost |
-| Discretisation as error correction (OP 4.14) | **Mis-posed.** No lock-in, no interior `k`; binary switch on rate vs drift |
+| Discretisation as error correction (OP 4.14) | **Mis-posed** in the exact model: no lock-in, no interior `k`, binary switch on rate vs drift. **Learned case unresolved** — defeated by optimisation, not answered |
 | Thm 5.8 practical bite | **Confirmed** on a cyclic HMM: 10× excess-NLL gap, depth and width don't close it |
 
 ### The headline number
@@ -216,9 +216,14 @@ rate-sufficient codebook, `k=1` — discretise every step — wins at every nois
 an insufficient codebook the trade-off is real but **binary**: never project until drift
 `σ√T` exceeds the rounding error, then every step. No clear interior-`k` winner in any of
 140 cells at 20k trials. The question isn't "how often"; it's "does the rate clear the
-task's precision", and the learned-codebook version is the only part still open.
+task's precision". The learned-codebook version is still open — and not for lack of
+trying: with a 16-bit learned codebook for 8 bits at *zero* noise, accuracy went 1.00 →
+0.75 → chance → chance as the number of projections went 0 → 4 → 16 → 64. Monotone in
+projection count at σ=0 is the optimisation signature (see artefact #3 below), not an
+error-correction effect. Fourth artefact; the script now refuses to rule unless the
+projection path itself trains.
 
-### Three times an optimisation artefact impersonated a capacity result
+### Four times an optimisation artefact impersonated a result
 
 This is the methodological lesson, and it cost more time than the theory did.
 

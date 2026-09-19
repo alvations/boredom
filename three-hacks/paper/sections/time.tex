@@ -265,5 +265,15 @@ cell. The design question, in this model, is therefore not how often to
 discretise but whether the codebook rate clears the task's precision
 requirement --- above it, always; below it, only once drift dominates. Whether
 a learned codebook inside a trained network behaves the same way is the part
-of Open Problem~\ref{op:drift} that remains open, and Section~\ref{sec:experiments}
-reports a first test.
+of Open Problem~\ref{op:drift} that remains open. Our attempt to test it
+(Section~\ref{sec:experiments}) was defeated by optimisation rather than
+answered: with a $16$-bit learned codebook carrying $8$ bits through $64$
+identity-plus-noise steps, accuracy at $\sigma = 0$ --- where projection is
+information-theoretically free --- was monotone in the \emph{number} of
+projections ($64 \to 0.48$, $16 \to 0.50$, $4 \to 0.75$, $0 \to 1.00$).
+That is the signature of straight-through gradients failing through stacked
+quantisations, not of error correction, and it says nothing about the
+question either way. A codebook that is a stable fixed point of its own
+projection is what the learned setting needs and what plain SGD did not find;
+a curriculum that introduces projection after the unprojected task is learned
+is the obvious next attempt.

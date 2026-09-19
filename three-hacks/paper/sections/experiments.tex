@@ -269,6 +269,22 @@ We suggest the general check: before reading a discrete-bottleneck failure as
 evidence of a capacity bound, verify that the failure is monotone in the
 bottleneck width and absent at widths well above the claimed threshold.
 
+\subsection{Discretisation as error correction: the learned case is unresolved}
+\label{sec:exp-drift}
+
+Proposition~\ref{prop:kone} settles the idealised version of Open
+Problem~\ref{op:drift}: no lock-in, $k=1$ optimal at sufficient rate, a binary
+switch at insufficient rate. We attempted the learned version --- a trained
+write, a trained $16$-bit codebook, a trained read, $8$ bits carried through
+$64$ steps of identity-plus-noise --- and report it as inconclusive. At
+$\sigma = 0$, where projection costs nothing, accuracy was $1.00$ with no
+projection, $0.75$ with four, and chance with sixteen or sixty-four. Monotone
+in the number of projections at zero noise is an optimisation signature, not
+a capacity or error-correction one, and it is the fourth time in this work an
+optimisation failure has presented as a result. The script now refuses to
+report unless the $(\sigma=0, k=1)$ cell is itself learnable. The
+learned-codebook question stays open.
+
 \subsection{Theorem~\ref{thm:noembed} has bite, and where}
 \label{sec:exp-bite}
 
