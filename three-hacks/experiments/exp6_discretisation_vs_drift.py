@@ -260,6 +260,22 @@ def part_b(args):
         print(f"\n  UNDERTRAINED: reference cell (sigma=0, none) scored {ref:.3f}.")
         print("  No comparison above is interpretable. Raise --steps.")
         return
+    # SECOND GUARD. With a rate-sufficient codebook, projection at sigma=0 is
+    # information-theoretically free, so the (sigma=0, k=1) cell must ALSO be
+    # learnable. If it is not, the projection path itself failed to train --
+    # the codebook never became a fixed point of from_bits(to_bits(.)) -- and
+    # nothing about projection can be concluded at any sigma. The first
+    # guarded run produced exactly this: accuracy monotone in the NUMBER of
+    # projections (64 -> chance, 16 -> chance, 4 -> 0.745, 0 -> 1.000), which
+    # is the optimisation signature of d4, not an error-correction effect.
+    proj0 = rows[args.sigmas_b[0]][ks.index(1)] if args.sigmas_b[0] == 0 else None
+    if proj0 is not None and proj0 < 0.9:
+        print(f"\n  PROJECTION PATH UNTRAINED: (sigma=0, k=1) scored {proj0:.3f} where")
+        print("  a rate-sufficient codebook should cost nothing. Straight-through")
+        print("  gradients through 64 stacked quantisations did not find a stable")
+        print("  code. The learned-codebook question remains OPEN; these rows say")
+        print("  nothing about whether learned discretisation corrects errors.")
+        return
     print("\n  Reading against Part A: with a rate-sufficient codebook, projection")
     print("  should never hurt at sigma=0 and should win once noise is present.")
 
