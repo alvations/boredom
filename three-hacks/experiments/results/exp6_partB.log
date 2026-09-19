@@ -65,7 +65,17 @@ Reading (ties within 0.02 are reported as ties):
   Open Problem 4.14 asked for an optimal k; the simplest model says
   the question is whether to discretise at all, decided by rate vs drift.
 
-PART B -- learned: 8 bits, d=32, b=16-bit projection, T=64, 1500 steps
+PART B -- learned: 8 bits, d=32, b=16-bit projection, T=64, 2000 steps, identity idle dynamics
 
- sigma      k=1     k=4    k=16    none   best
-----------------------------------------------
+ sigma      k=1     k=4    k=16    none   verdict
+----------------------------------------------------
+  0.00    0.480   0.499   0.745   1.000   none
+  0.30    0.504   0.500   0.505   0.813   none
+  0.60    0.505   0.488   0.507   0.547   none
+
+  PROJECTION PATH UNTRAINED: (sigma=0, k=1) scored 0.480 where
+  a rate-sufficient codebook should cost nothing. Straight-through
+  gradients through 64 stacked quantisations did not find a stable
+  code. The learned-codebook question remains OPEN; these rows say
+  nothing about whether learned discretisation corrects errors.
+E6BDONE
