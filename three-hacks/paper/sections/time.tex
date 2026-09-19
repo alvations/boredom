@@ -219,14 +219,51 @@ projected every $k$ steps. Quantify the largest $n$ for which the trajectory
 remains recoverable, as a function of $(\eta, R, k)$.
 \end{openproblem}
 
-The premise that discretisation corrects errors is not free: projection reduces
-error only under a margin condition, and near a cell boundary quantisation
-\emph{amplifies} perturbation. For the tractable case of an isometric $G$,
-Gaussian noise of variance $\eta^2$ per step, and a lattice codebook of rate $R$
-in dimension $d$, standard lattice-quantisation arguments give a crossover
-depth scaling as $(P/\eta^{2})\,2^{-2R/d}$ for signal power $P$, below which the
-unquantised trajectory is recoverable and above which projection wins. We state
-the general case as open because neither the isometry nor the noise model
-survives contact with a trained network. The design question it implies --- how
-often to project, onto a \emph{learned} codebook rather than the vocabulary --- is
-the one parameter in this paper that no published architecture sweeps.
+We can settle the simplest instance exactly, and it does not contain the
+trade-off the problem presupposes.
+
+\begin{proposition}[Projection interval with a rate-sufficient codebook]
+\label{prop:kone}
+Store a bit as the sign of a coordinate initialised at $\pm1$, add
+$\mathcal{N}(0,\sigma^2)$ noise at each of $T$ steps, and every $k$ steps
+optionally project to the nearest of $\{-1,+1\}$. With $p_k = \Phi(-1/(\sigma\sqrt k))$,
+\begin{equation}
+  \Prob[\text{correct} \mid \text{project every } k]
+   = \tfrac12\Big(1 + (1-2p_k)^{T/k}\Big),
+  \qquad
+  \Prob[\text{correct} \mid \text{never}] = 1 - \Phi\!\big(-1/(\sigma\sqrt T)\big).
+  \label{eq:kone}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+After a projection the state is exactly $\pm1$; over the next $k$ steps it
+accumulates $\mathcal{N}(0,k\sigma^2)$ and is projected to the wrong sign iff
+that sum crosses $\mp1$, with probability $p_k$. The same holds from the wrong
+sign, so the projected state is a two-state Markov chain with symmetric flip
+probability $p_k$ per interval, whose $T/k$-step transition gives the first
+formula. Without projection the final value is $1 + \mathcal{N}(0,T\sigma^2)$.
+\end{proof}
+
+Two consequences. First, projection does \emph{not} lock errors in: a flipped
+bit flips back with the same probability, which is why the chain is symmetric.
+The lock-in penalty conjectured in an earlier draft of this paper does not
+exist in this model. Second, evaluating \eqref{eq:kone} over $\sigma \in [0.05,
+0.4]$, $k \in \{1,\dots,32\}$, $T = 64$ finds $k=1$ optimal at every noise
+level, confirmed by Monte Carlo at $2\times10^{4}$ trials
+(Section~\ref{sec:experiments}); in the small-$\sigma$ regime this follows from
+$p_k/k$ being increasing in $k$, so that $(T/k)\ln(1-2p_k)$ is decreasing.
+With enough rate, discretise as often as possible.
+
+The trade-off appears only when the codebook's resolution is coarser than the
+task requires, and even then it is binary rather than interior: with an analog
+value to be recovered to precision $\varepsilon$ and a grid of $L$ levels with
+half-spacing $\Delta/2 > \varepsilon$, Monte Carlo finds ``never project''
+optimal while $\sigma\sqrt{T}$ is below the rounding error and ``project every
+step'' optimal once drift exceeds it, with no clear interior-$k$ winner in any
+cell. The design question, in this model, is therefore not how often to
+discretise but whether the codebook rate clears the task's precision
+requirement --- above it, always; below it, only once drift dominates. Whether
+a learned codebook inside a trained network behaves the same way is the part
+of Open Problem~\ref{op:drift} that remains open, and Section~\ref{sec:experiments}
+reports a first test.
