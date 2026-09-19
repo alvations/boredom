@@ -76,6 +76,14 @@ invert a claim rather than tighten it.
 | exp2 at T=12 | Discrete scored ~0 at every width, continuous 1.000 — which reads as confirming the bandwidth thesis. **It doesn't**: a bound binding at 6.91 bits cannot explain failure at 20 bits. The constraint was credit assignment through twelve stacked quantisations. At T=4 the real threshold appears |
 | "cells match prediction" as the summary statistic | Weights both error directions equally, when only **success below threshold** can refute a lower bound. Violations now reported separately |
 
+## Errata round 3: the three open questions
+
+| Was | Actually | Where |
+|---|---|---|
+| Conjecture: discretisation *locks in* errors, so there is a bandwidth-vs-drift trade-off with an interior optimum `k*` | **No lock-in exists.** A projected bit flips back with the same probability it flipped, so the projected state is a symmetric two-state chain and `k=1` is optimal at every noise level when the codebook rate suffices — exact closed form, Monte Carlo at 20k trials. With an *insufficient* codebook the trade-off is real but **binary** (never vs. every step), switching on `σ√T` against the rounding error, with no clear interior-`k` winner in any cell. Open Problem 4.14 asked the wrong question | `Prop 4.15`, §6.7 |
+| exp7 on a peaked random HMM printed "DISPROOF: Thm 5.8 is practically empty" | **Unearned.** A sharply peaked HMM's belief collapses after a symbol or two, so no mixing is ever needed and a diagonal recurrence matching a dense one is *expected*. The script now measures belief entropy and refuses to rule on bite unless the hidden state must actually be tracked. The cyclic HMM — belief rotates, complex eigenvalues, the case Thm 5.8(b) names — is the test that can decide it | `exp7 --hmm cyclic` |
+| Thesis 1 dead at Qwen's head fraction (`S = 1.000`, degenerate `ρ=1`) | **Rescued by training, marginally.** 600 steps of auxiliary early-exit loss: `S = 1.072` at `u=0.26`, `1.146` at `u=0.153`, with tail energy falling at every layer — the mechanism Thm 3.7 names. +0.08 final-layer val loss. A 7% margin on an inflated-acceptance model is not something to build on, but the sign is the predicted one | §6.6 |
+
 ## What survived unchanged
 
 - Speculative sampling is exact for an arbitrary draft, and acceptance is `1 − TV(p,q)`.
