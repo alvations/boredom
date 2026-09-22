@@ -42,3 +42,9 @@ architecture.** That is a harness design flaw, found in batch 3. Gating test for
 budget (3000 steps × bs 64): `rounds/_diag_recall_v2budget.log`. If it clears, the search
 restarts as v2 with the same tasks and a larger fixed budget, fully disclosed; if not, it is
 a bug hunt.
+
+**Gate FAILED.** At 3000 steps × bs 64 (4× the examples) all-attention RECALL is 0.328 — flat,
+not slow. A six-pair lookup four attention layers cannot learn from 192k examples is a broken
+harness, not a hard task. ~0.3 is what "emit any value seen in context, ignore the key"
+scores. **No v2 restart until the cause is found.** Localizer sweeping n_pairs from 1 (pure
+copy) to 6: `rounds/_diag_recall_bug.log`.
