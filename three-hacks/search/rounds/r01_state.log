@@ -1,0 +1,2 @@
+r01_state [state]: Thm 5.8 / exp7: dense mixing tracks a hidden state where diagonal cannot; Thm 5.12 / exp3b: keep one attention layer for exact recall
+  blocks=['dense', 'dense', 'attn', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.0  params=225408 compute=69

@@ -1,3 +1,5 @@
 budget reference set: params=209216 compute=69
 r00_naive [baseline]: naive on every axis: diagonal state, no latent loops, no early-exit loss
   blocks=['diag', 'diag', 'diag', 'diag'] r=0 mode=overwrite proj_k=0 ee_lambda=0.0  params=209216 compute=69
+  F=0.813±0.097  state=0.434 time=0.132 depth=0.246  (recall 0.36 track 0.51 compose 0.13 S 1.116)
+R0DONE
