@@ -1,0 +1,3 @@
+v2_r18_overwrite_r1 [time]: Cor 4.5 matched test B: one overwriting loop, same compute as r17
+  blocks=['diag', 'diag', 'diag', 'diag'] r=1 mode=overwrite proj_k=0 ee_lambda=0.0  params=225600 compute=112
+  F=0.728±0.055  state=0.415 time=0.107 depth=0.206  (recall 0.24 track 0.59 compose 0.11 S 1.098)

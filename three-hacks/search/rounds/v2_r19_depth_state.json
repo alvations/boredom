@@ -1,0 +1,101 @@
+{
+  "config": {
+    "name": "v2_r19_depth_state",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "dense",
+      "dense",
+      "attn",
+      "dense"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "recall_mode": "pairs",
+    "steps": 2400,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "state+depth",
+    "rationale": "the two axis moves that are expected to be independent, combined"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3567708333333333,
+      "track_nll": 1.357861469189326,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.7492470563367929,
+      "compose_acc": 0.2825520833333333,
+      "alpha": [
+        0.9540755152702332,
+        0.9664790034294128,
+        0.9921723008155823,
+        1.0
+      ],
+      "speedup": 1.6637887851905844,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.5530089448350631,
+      "time": 0.2825520833333333,
+      "depth_raw": 1.0,
+      "depth": 0.8355610281683965,
+      "fitness": 1.671122056336793,
+      "params": 241792,
+      "compute": 61.333333333333336,
+      "train_seconds": 81.12732338905334,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.3111979166666667,
+      "track_nll": 1.3633081416289012,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.6057195072521497,
+      "compose_acc": 0.21875,
+      "alpha": [
+        0.9607940316200256,
+        0.9705094695091248,
+        0.991956889629364,
+        1.0
+      ],
+      "speedup": 1.6971153082343573,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.45845871195940824,
+      "time": 0.21875,
+      "depth_raw": 1.0,
+      "depth": 0.6772087119594082,
+      "fitness": 1.3544174239188165,
+      "params": 241792,
+      "compute": 61.333333333333336,
+      "train_seconds": 78.59841084480286,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.5127697401278049,
+    "state": 0.5057338283972357,
+    "time": 0.25065104166666663,
+    "depth": 0.7563848700639024,
+    "depth_raw": 1.0,
+    "recall_acc": 0.333984375,
+    "track_score": 0.6774832817944714,
+    "compose_acc": 0.25065104166666663,
+    "speedup": 1.6804520467124708,
+    "fitness_std": 0.2239439932159441,
+    "state_std": 0.06685711082914282,
+    "time_std": 0.04511488577882919,
+    "depth_std": 0.11197199660797205,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.032224918413449405,
+    "track_score_std": 0.10148930324483624,
+    "compose_acc_std": 0.04511488577882919,
+    "speedup_std": 0.023565410437621576
+  },
+  "params": 241792,
+  "compute": 61.333333333333336
+}

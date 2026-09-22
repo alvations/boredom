@@ -1,0 +1,4 @@
+budget reference set: params=225600 compute=61
+v2_r14_naive [baseline]: v2 baseline: naive on every axis, one-hop RECALL, 2400 steps (3 seeds)
+  blocks=['diag', 'diag', 'diag', 'diag'] r=0 mode=overwrite proj_k=0 ee_lambda=0.0  params=225600 compute=61
+  F=0.934±0.015  state=0.453 time=0.230 depth=0.250  (recall 0.36 track 0.55 compose 0.23 S 1.083)

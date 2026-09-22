@@ -84,3 +84,15 @@ combined). Round 20 is chosen from their results. Then a held-out comparison on 
 
 | round | name | axis | mutation | F | Δ vs inc | verdict |
 |---|---|---|---|---|---|---|
+| 14 | v2_r14_naive | baseline | diag×4, r=0, λ=0, one-hop RECALL, 2400 steps (3 seeds) | 0.934±0.015 | — | **incumbent**; τ₂=0.015 |
+| 15 | v2_r15_depth | depth | λ=0.5 | 1.236±0.006 | **+0.302** | **ACCEPT**. S 1.08→1.68 — same magnitude as v1 round 3 |
+| 16 | v2_r16_state | state | dense,dense,attn,dense | 1.073±0.116 | **+0.139** | **ACCEPT** (wide spread). track 0.55→0.63, compose 0.23→0.27, recall flat 0.34 |
+| 17 | v2_r17_append_r1 | time | append r=1 | 0.699±0.079 | −0.235 | worse. recall 0.23, compose 0.10 |
+| 18 | v2_r18_overwrite_r1 | time | overwrite r=1 | 0.728±0.055 | −0.206 | worse — **beats append by 0.029 (> τ₂), second matched loss for Cor 4.5** |
+| 19 | v2_r19_depth_state | state+depth | dense,dense,attn,dense + λ=0.5 | 1.513±0.224 | **+0.579** | **ACCEPT → incumbent**. track 0.68, S 1.68. Seeds 1.671 / 1.354: held-out must confirm |
+
+**Note after v2 batch.** Depth and state both register now, and combine additively (+0.302,
++0.139 → +0.579). Loops hurt at every budget and encoding tried, and the matched
+append-vs-overwrite test has gone against Cor 4.5 twice. RECALL still does not move with
+architecture in the three-task mix (0.33–0.36 with or without an attention layer), while
+TRACK does — so the attention layer may be dead weight. Round 20 tests exactly that.

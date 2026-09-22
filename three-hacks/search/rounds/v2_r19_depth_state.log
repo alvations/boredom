@@ -1,0 +1,4 @@
+v2_r19_depth_state [state+depth]: the two axis moves that are expected to be independent, combined
+  blocks=['dense', 'dense', 'attn', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=241792 compute=61
+  F=1.513±0.224  state=0.506 time=0.251 depth=0.756  (recall 0.33 track 0.68 compose 0.25 S 1.680)
+V2R19DONE

@@ -1,0 +1,5 @@
+tau = 0.0150 (from v2_r14_naive)
+round          axis            F       dF  verdict    mutation   (tau=0.015)
+v2_r14_naive   baseline  0.934±0.015   +0.000  baseline   v2 baseline: naive on every axis, one-hop RECALL, 2400 steps
+
+incumbent: v2_r14_naive  F=0.934  state=0.453 time=0.230 depth=0.250

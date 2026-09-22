@@ -1,0 +1,3 @@
+v2_r17_append_r1 [time]: Cor 4.5 matched test A: one appended loop on the v2 baseline
+  blocks=['diag', 'diag', 'diag', 'diag'] r=1 mode=append proj_k=0 ee_lambda=0.0  params=225600 compute=123
+  F=0.699±0.079  state=0.412 time=0.096 depth=0.191  (recall 0.23 track 0.59 compose 0.10 S 1.088)
