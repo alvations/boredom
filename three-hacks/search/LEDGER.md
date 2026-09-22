@@ -57,3 +57,19 @@ head, and it does not form in this model at this budget for any n ≥ 2. **Not a
 encoding that no candidate can learn.** v2 encodes each pair as one token (one-hop content
 match, same semantics), behind `recall_mode="pairs"`; v1 rounds keep their interleaved
 record. Gate before restart: `rounds/_diag_recall_pairs.log`.
+
+**v2 gate: PASS, on the criterion that matters.** One-hop RECALL, 1200 single-task steps:
+all-attention `0.272 → 0.423 → 0.661` and still rising steeply; diagonal state `0.375`.
+Under the interleaved encoding both sat at ~0.35 whatever the architecture; now block types
+*separate* and the curve is not flat. It does not saturate at this budget, so v2 measures
+state and time in a partial-learning regime where architecture appears as slope, not as
+ceiling. Stated as such.
+
+## Search v2 — one-hop RECALL, 2400 steps, same COMPOSE/TRACK, same rule
+
+τ₂ is set from the v2 baseline (3 seeds) before any v2 candidate is scored. Rounds 14–19 are
+pre-committed (baseline; depth, state, and the matched time pair in isolation; depth+state
+combined). Round 20 is chosen from their results. Then a held-out comparison on fresh seeds.
+
+| round | name | axis | mutation | F | Δ vs inc | verdict |
+|---|---|---|---|---|---|---|

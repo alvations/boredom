@@ -1,0 +1,6 @@
+attn x4  step 400: pair-recall acc 0.272
+attn x4  step 800: pair-recall acc 0.423
+attn x4  step 1200: pair-recall acc 0.661
+diag x4  step 400: pair-recall acc 0.250
+diag x4  step 800: pair-recall acc 0.356
+diag x4  step 1200: pair-recall acc 0.375
