@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r01_state",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "dense",
+      "dense",
+      "attn",
+      "dense"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.0,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "state",
+    "rationale": "Thm 5.8 / exp7: dense mixing tracks a hidden state where diagonal cannot; Thm 5.12 / exp3b: keep one attention layer for exact recall"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3424479166666667,
+      "track_nll": 1.3646488686402638,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5703894476483716,
+      "compose_acc": 0.1171875,
+      "alpha": [
+        0.6769916415214539,
+        0.7558433413505554,
+        0.9129306077957153,
+        1.0
+      ],
+      "speedup": 1.1605478488037742,
+      "exit_layer": 1,
+      "gamma": 1,
+      "state": 0.45641868215751913,
+      "time": 0.1171875,
+      "depth_raw": 0.5210956976075483,
+      "depth": 0.2989037136433748,
+      "fitness": 0.8725098958008939,
+      "params": 225408,
+      "compute": 69.33333333333333,
+      "train_seconds": 51.133424282073975,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.33984375,
+      "track_nll": 1.3649584551652272,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5622314033285464,
+      "compose_acc": 0.17578125,
+      "alpha": [
+        0.6392483115196228,
+        0.8008791208267212,
+        0.926940381526947,
+        1.0
+      ],
+      "speedup": 1.1344278972454136,
+      "exit_layer": 1,
+      "gamma": 1,
+      "state": 0.4510375766642732,
+      "time": 0.17578125,
+      "depth_raw": 0.46885579449082715,
+      "depth": 0.2938876389774858,
+      "fitness": 0.920706465641759,
+      "params": 225408,
+      "compute": 69.33333333333333,
+      "train_seconds": 49.2225022315979,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 0.8966081807213264,
+    "state": 0.45372812941089613,
+    "time": 0.146484375,
+    "depth": 0.2963956763104303,
+    "depth_raw": 0.4949757460491877,
+    "recall_acc": 0.34114583333333337,
+    "track_score": 0.566310425488459,
+    "compose_acc": 0.146484375,
+    "speedup": 1.1474878730245939,
+    "fitness_std": 0.03408012136440673,
+    "state_std": 0.0038050161845543866,
+    "time_std": 0.04143203796014927,
+    "depth_std": 0.003546900411188152,
+    "depth_raw_std": 0.03693918974236175,
+    "recall_acc_std": 0.0018414239093399805,
+    "track_score_std": 0.005768608459768832,
+    "compose_acc_std": 0.04143203796014927,
+    "speedup_std": 0.018469594871180876
+  },
+  "params": 225408,
+  "compute": 69.33333333333333
+}

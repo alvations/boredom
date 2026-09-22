@@ -1,0 +1,4 @@
+r03_depth [depth]: exp5: an auxiliary early-exit loss is what lifts self-drafting over the head-cost ceiling
+  blocks=['diag', 'diag', 'diag', 'diag'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=209216 compute=69
+  F=1.115±0.016  state=0.437 time=0.121 depth=0.558  (recall 0.36 track 0.52 compose 0.12 S 1.666)
+R3DONE

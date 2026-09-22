@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r03_depth",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "diag",
+      "diag",
+      "diag",
+      "diag"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "depth",
+    "rationale": "exp5: an auxiliary early-exit loss is what lifts self-drafting over the head-cost ceiling"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.36328125,
+      "track_nll": 1.3662826816240947,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5273361567017605,
+      "compose_acc": 0.10677083333333333,
+      "alpha": [
+        0.9521011710166931,
+        0.9780746698379517,
+        0.9900872111320496,
+        1.0
+      ],
+      "speedup": 1.6541382849427304,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.44530870335088024,
+      "time": 0.10677083333333333,
+      "depth_raw": 1.0,
+      "depth": 0.5520795366842136,
+      "fitness": 1.1041590733684272,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 44.64734768867493,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.3489583333333333,
+      "track_nll": 1.3670696516831715,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5065983787216515,
+      "compose_acc": 0.13541666666666666,
+      "alpha": [
+        0.9568215012550354,
+        0.980470597743988,
+        0.9901538491249084,
+        1.0
+      ],
+      "speedup": 1.6773186183421829,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.42777835602749237,
+      "time": 0.13541666666666666,
+      "depth_raw": 1.0,
+      "depth": 0.563195022694159,
+      "fitness": 1.126390045388318,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 44.19196891784668,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.1152745593783726,
+    "state": 0.4365435296891863,
+    "time": 0.12109375,
+    "depth": 0.5576372796891863,
+    "depth_raw": 1.0,
+    "recall_acc": 0.35611979166666663,
+    "track_score": 0.516967267711706,
+    "compose_acc": 0.12109375,
+    "speedup": 1.6657284516424566,
+    "fitness_std": 0.015719671067633164,
+    "state_std": 0.012395827468923008,
+    "time_std": 0.02025566300273964,
+    "depth_std": 0.007859835533816582,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.010127831501369835,
+    "track_score_std": 0.014663823436476143,
+    "compose_acc_std": 0.02025566300273964,
+    "speedup_std": 0.016390970936917857
+  },
+  "params": 209216,
+  "compute": 69.33333333333333
+}
