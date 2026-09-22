@@ -1,0 +1,6 @@
+{
+  "params": 225600,
+  "compute": 61.333333333333336,
+  "max_params_ratio": 1.25,
+  "max_compute_ratio": 3.5
+}
