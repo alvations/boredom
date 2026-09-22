@@ -1,0 +1,4 @@
+n_pairs=1: final train loss 0.001  held-out acc 1.000  (seq len 5)
+n_pairs=2: final train loss 0.619  held-out acc 0.550  (seq len 7)
+n_pairs=3: final train loss 0.953  held-out acc 0.444  (seq len 9)
+n_pairs=6: final train loss 1.423  held-out acc 0.400  (seq len 15)

@@ -51,7 +51,8 @@ H0, NH = 24, 4          # hmm symbols
 G0, NG = 28, 4          # S_5 adjacent transpositions
 P0, NP = 32, 5          # permutation values
 SEP, Q, THOUGHT, ANS = 37, 38, 39, 40
-VOCAB = 41
+PAIR0 = 41              # pair tokens (k, v) -> PAIR0 + k*NV + v, for one-hop recall
+VOCAB = 41 + NK * NV
 
 IMPOSED_U = 0.26        # Qwen3-0.6B's head fraction; the synthetic vocab makes
                         # the model's own u ~1%, which would make depth free
@@ -262,7 +263,10 @@ class Tasks:
             j = self.rng.randrange(n)
             seq = []
             for k, v in zip(keys, vals):
-                seq += [K0 + k, V0 + v]
+                if self.cfg.recall_mode == "pairs":
+                    seq.append(PAIR0 + k * NV + v)
+                else:
+                    seq += [K0 + k, V0 + v]
             seq += [Q, K0 + keys[j]] + [THOUGHT] * (self.cfg.n_slots if self.cfg.r else 0) + [ANS]
             toks.append(seq); tgt.append(V0 + vals[j])
         return torch.tensor(toks), torch.tensor(tgt)

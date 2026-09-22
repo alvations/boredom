@@ -48,3 +48,12 @@ not slow. A six-pair lookup four attention layers cannot learn from 192k example
 harness, not a hard task. ~0.3 is what "emit any value seen in context, ignore the key"
 scores. **No v2 restart until the cause is found.** Localizer sweeping n_pairs from 1 (pure
 copy) to 6: `rounds/_diag_recall_bug.log`.
+
+**Localizer result.** All-attention, RECALL only, 1200 steps × bs 64, sweeping n_pairs:
+`1 → 1.000 (loss 0.001)`, `2 → 0.550`, `3 → 0.444`, `6 → 0.400`. The pipeline is sound (a pure
+copy trains perfectly); the failure begins at the first point a key match is required. That is
+the induction cliff — two-hop retrieval needs a previous-token head feeding a content-match
+head, and it does not form in this model at this budget for any n ≥ 2. **Not a bug; a task
+encoding that no candidate can learn.** v2 encodes each pair as one token (one-hop content
+match, same semantics), behind `recall_mode="pairs"`; v1 rounds keep their interleaved
+record. Gate before restart: `rounds/_diag_recall_pairs.log`.
