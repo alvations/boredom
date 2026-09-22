@@ -96,3 +96,19 @@ combined). Round 20 is chosen from their results. Then a held-out comparison on 
 append-vs-overwrite test has gone against Cor 4.5 twice. RECALL still does not move with
 architecture in the three-task mix (0.33–0.36 with or without an attention layer), while
 TRACK does — so the attention layer may be dead weight. Round 20 tests exactly that.
+| 20 | v2_r20_all_dense_depth | state | dense×4 + λ=0.5 | 1.525±0.211 | +0.012 | no change (< τ₂). track 0.73, S 1.75; compose 0.24 |
+
+## Held-out verdict — seeds 5, 6, 7, never seen by the search
+
+| config | held-out F | state | time | depth | track | compose | S |
+|---|---|---|---|---|---|---|---|
+| v2_r14 naive | 0.873 ± 0.032 | 0.450 | 0.216 | 0.207 | 0.557 | 0.216 | 1.056 |
+| v2_r15 depth | 1.192 ± 0.037 | 0.416 | 0.180 | 0.596 | 0.499 | 0.180 | 1.681 |
+| v2_r16 state | 1.074 ± 0.100 | 0.502 | 0.287 | 0.285 | 0.602 | 0.287 | 1.081 |
+| **v2_r19 depth + state** | **1.560 ± 0.056** | 0.482 | 0.298 | 0.780 | 0.644 | 0.298 | 1.658 |
+| v2_r20 all-dense + depth | 1.460 ± 0.075 | 0.481 | 0.249 | 0.730 | 0.654 | 0.249 | 1.736 |
+
+**Final incumbent: v2_r19** — `dense, dense, attn, dense` with early-exit loss λ=0.5, no loops.
+Held-out F 1.560 vs 0.873 naive: **+79%**. Its ±0.224 search-seed spread tightens to ±0.056
+on fresh seeds. Round 20's +0.012 search-seed edge reverses to −0.100 held-out: the attention
+layer was not dead weight, and the held-out step caught the noise as designed.

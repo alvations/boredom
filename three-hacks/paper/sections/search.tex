@@ -108,5 +108,38 @@ every budget and encoding tried, with the append-versus-overwrite comparison
 going against Corollary~\ref{cor:crossover} twice. The corollary is a
 capacity statement about long horizons; at $r = 1$ on a model that cannot yet
 use one loop, capacity is not what binds, and we record the loss rather than
-explain it away. The round-19 incumbent carries a wide spread across its two
-seeds; the final claim is made on seeds the search never saw.
+explain it away. Round~20 dropped the attention layer (all-dense with the depth loss)
+and tied the incumbent on the search seeds ($+0.012$, under $\tau_2$).
+
+\subsection{The claim, on seeds the search never saw}
+
+Table~\ref{tab:holdout} re-trains each v2 candidate on three fresh seeds.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+config & $F$ (held-out) & state & time & depth & \textsc{track} \\
+\midrule
+naive baseline & $0.873 \pm 0.032$ & 0.450 & 0.216 & 0.207 & 0.557 \\
+$+$ depth & $1.192 \pm 0.037$ & 0.416 & 0.180 & 0.596 & 0.499 \\
+$+$ state & $1.074 \pm 0.100$ & 0.502 & 0.287 & 0.285 & 0.602 \\
+$+$ depth $+$ state (round 19) & $\mathbf{1.560 \pm 0.056}$ & 0.482 & 0.298 & 0.780 & 0.644 \\
+all-dense $+$ depth (round 20) & $1.460 \pm 0.075$ & 0.481 & 0.249 & 0.730 & 0.654 \\
+\bottomrule
+\end{tabular}
+\caption{Held-out evaluation on seeds 5--7. The round-19 configuration is
+$79\%$ above the naive baseline; its $\pm 0.224$ search-seed spread tightens
+to $\pm 0.056$. Round~20's search-seed tie reverses to a $0.100$ deficit: the
+attention layer was not dead weight.}
+\label{tab:holdout}
+\end{table}
+
+The search therefore ends where Sections~\ref{sec:depth} and \ref{sec:state}
+point: a dense-mixing recurrence with one exact-recall layer, trained so its
+intermediate layers are decodable, and no latent loops. Depth contributes
+$+0.319$ and state $+0.201$ on held-out seeds, combining to $+0.687$. The
+time axis, as tested here, contributed nothing and cost something, twice;
+the corollary it rests on is a long-horizon capacity statement that this
+budget could not reach, and we leave it as the one prediction of this paper
+that its own search did not support.

@@ -1,0 +1,4 @@
+v2_r20_all_dense_depth [state]: RECALL does not move with an attention layer in the mix while TRACK moves with dense mixing: is the recall layer dead weight? all-dense + depth loss on the incumbent
+  blocks=['dense', 'dense', 'dense', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=241984 compute=61
+  F=1.525±0.211  state=0.527 time=0.236 depth=0.762  (recall 0.33 track 0.73 compose 0.24 S 1.750)
+R20DONE

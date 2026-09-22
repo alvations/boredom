@@ -244,6 +244,28 @@ the failure is monotone in the bottleneck width and absent well above the claime
 And report violations — successes *below* threshold — separately from match rates, since
 only that direction can refute a lower bound.
 
+## Iterating the architecture — 20 rounds of theory-guided search
+
+Every claim above became a switch in one model (`search/dts.py`), scored on one task per
+axis, under a rule fixed before the first candidate: accept only above the baseline's own
+seed noise, budgets enforced first, final claim on seeds the search never saw.
+
+| axis | prediction | verdict after 20 rounds |
+|---|---|---|
+| depth | early-exit loss (exp5) | **held, twice, at the identical +0.302** |
+| state | dense mixing (Thm 5.8) | **held on the mixing task**, +0.201 held-out |
+| time | append > overwrite (Cor 4.5) | **did not hold**: loops worse, overwrite beat append twice |
+
+Final configuration — dense, dense, attn, dense + early-exit loss, no loops — is **79% above
+the naive baseline on held-out seeds** (1.560 ± 0.056 vs 0.873 ± 0.032). Round 20 tried
+dropping the attention layer, tied on search seeds, and lost on held-out: the fresh-seed step
+caught the noise.
+
+The search also found its own harness limit: for 13 rounds two axes couldn't register because
+RECALL was unlearnable under its first encoding by *any* architecture — diagnosed by a
+localizer, not assumed, and fixed with one disclosed change. Full account:
+[`search/REPORT.md`](search/REPORT.md), every round in [`search/LEDGER.md`](search/LEDGER.md).
+
 ## Reproducing
 
 ```

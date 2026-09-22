@@ -1,0 +1,101 @@
+{
+  "config": {
+    "name": "v2_r20_all_dense_depth",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "dense",
+      "dense",
+      "dense",
+      "dense"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "recall_mode": "pairs",
+    "steps": 2400,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "state",
+    "rationale": "RECALL does not move with an attention layer in the mix while TRACK moves with dense mixing: is the recall layer dead weight? all-dense + depth loss on the incumbent"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3424479166666667,
+      "track_nll": 1.3555251955986023,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.8108111812566882,
+      "compose_acc": 0.2604166666666667,
+      "alpha": [
+        0.9705169796943665,
+        0.9870095252990723,
+        0.9941986799240112,
+        1.0
+      ],
+      "speedup": 1.7467027248759739,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.5766295489616774,
+      "time": 0.2604166666666667,
+      "depth_raw": 1.0,
+      "depth": 0.837046215628344,
+      "fitness": 1.674092431256688,
+      "params": 241984,
+      "compute": 61.333333333333336,
+      "train_seconds": 97.32018971443176,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.3098958333333333,
+      "track_nll": 1.3618537386258442,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.6440450905740643,
+      "compose_acc": 0.2109375,
+      "alpha": [
+        0.9718756675720215,
+        0.987865149974823,
+        0.9920701384544373,
+        1.0
+      ],
+      "speedup": 1.7537623070724861,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.47697046195369885,
+      "time": 0.2109375,
+      "depth_raw": 1.0,
+      "depth": 0.6879079619536989,
+      "fitness": 1.3758159239073977,
+      "params": 241984,
+      "compute": 61.333333333333336,
+      "train_seconds": 94.63809585571289,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.524954177582043,
+    "state": 0.5268000054576881,
+    "time": 0.23567708333333334,
+    "depth": 0.7624770887910215,
+    "depth_raw": 1.0,
+    "recall_acc": 0.326171875,
+    "track_score": 0.7274281359153763,
+    "compose_acc": 0.23567708333333334,
+    "speedup": 1.75023251597423,
+    "fitness_std": 0.2109133410153223,
+    "state_std": 0.07046961623020179,
+    "time_std": 0.0349870542774594,
+    "depth_std": 0.10545667050766115,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.02301779886674962,
+    "track_score_std": 0.11792143359365403,
+    "compose_acc_std": 0.0349870542774594,
+    "speedup_std": 0.004991878443497641
+  },
+  "params": 241984,
+  "compute": 61.333333333333336
+}
