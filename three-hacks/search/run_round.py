@@ -18,7 +18,7 @@ from dts import Cfg, run_config, DTS, Tasks, n_params, measure_compute
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROUNDS = os.path.join(HERE, "rounds")
-BUDGET_FILE = os.path.join(ROUNDS, "_budget.json")
+BUDGET_FILE = os.path.join(ROUNDS, "_budget.json")   # overridden by --tag
 
 
 def main():
@@ -29,7 +29,11 @@ def main():
     ap.add_argument("--set-budget", action="store_true",
                     help="record this config's params/compute as the budget reference")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--tag", default="", help="scope the budget file, e.g. v2 -> _budget_v2.json")
     args = ap.parse_args()
+    global BUDGET_FILE
+    if args.tag:
+        BUDGET_FILE = os.path.join(ROUNDS, f"_budget_{args.tag}.json")
 
     raw = json.loads(args.config) if args.config else json.load(open(args.file))
     base = Cfg().to_dict(); base.update(raw)

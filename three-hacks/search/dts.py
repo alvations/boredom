@@ -74,6 +74,10 @@ class Cfg:
     # depth axis
     ee_lambda: float = 0.0
     ee_layers: tuple = ()              # empty = 1..L-1
+    # recall encoding: "interleaved" = k1 v1 k2 v2 ... (two-hop, needs an induction
+    # circuit; flat at ~0.35 for every architecture in search v1), "pairs" = one
+    # token per (k, v) (one-hop content match). v2 uses "pairs".
+    recall_mode: str = "interleaved"
     # training
     steps: int = 1500
     lr: float = 2e-3

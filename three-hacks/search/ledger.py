@@ -19,9 +19,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROUNDS = os.path.join(HERE, "rounds")
 
 
-def load():
+def load(tag=""):
     rows = []
-    for p in sorted(glob.glob(os.path.join(ROUNDS, "r*.json"))):
+    pat = f"{tag}_r*.json" if tag else "r*.json"
+    for p in sorted(glob.glob(os.path.join(ROUNDS, pat))):
         r = json.load(open(p))
         r["_name"] = os.path.basename(p)[:-5]
         rows.append(r)
@@ -33,9 +34,10 @@ def main():
     ap.add_argument("--incumbent", help="round name to diff against; default: running best")
     ap.add_argument("--markdown", action="store_true")
     ap.add_argument("--set-tau-from", help="round name whose F std becomes tau")
+    ap.add_argument("--tag", default="", help="scope tau and the round glob, e.g. v2")
     args = ap.parse_args()
 
-    tau_file = os.path.join(ROUNDS, "_tau.json")
+    tau_file = os.path.join(ROUNDS, f"_tau_{args.tag}.json" if args.tag else "_tau.json")
     if args.set_tau_from:
         r = json.load(open(os.path.join(ROUNDS, args.set_tau_from + ".json")))
         tau = r["mean"]["fitness_std"]
@@ -43,7 +45,7 @@ def main():
         print(f"tau = {tau:.4f} (from {args.set_tau_from})")
     tau = json.load(open(tau_file))["tau"] if os.path.exists(tau_file) else None
 
-    rows = load()
+    rows = load(args.tag)
     inc = None
     if args.incumbent:
         inc = next(r for r in rows if r["_name"] == args.incumbent)
