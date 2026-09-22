@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r09_lr4e3",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "diag",
+      "diag",
+      "diag",
+      "diag"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.004,
+    "bs": 32,
+    "axis": "recipe",
+    "rationale": "RECIPE, not an axis: state/time tasks are trainability-bound at this budget; double the peak lr on the incumbent"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3606770833333333,
+      "track_nll": 1.3654967347780864,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5480469715652985,
+      "compose_acc": 0.13671875,
+      "alpha": [
+        0.9614142775535583,
+        0.9812126755714417,
+        0.9896138310432434,
+        1.0
+      ],
+      "speedup": 1.7002302751816198,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.45436202744931586,
+      "time": 0.13671875,
+      "depth_raw": 1.0,
+      "depth": 0.5910807774493159,
+      "fitness": 1.1821615548986317,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 2649.7108566761017,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.3359375,
+      "track_nll": 1.3664607405662537,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.522644050862058,
+      "compose_acc": 0.15234375,
+      "alpha": [
+        0.9605441689491272,
+        0.9834884405136108,
+        0.9920799732208252,
+        1.0
+      ],
+      "speedup": 1.695862302320505,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.429290775431029,
+      "time": 0.15234375,
+      "depth_raw": 1.0,
+      "depth": 0.581634525431029,
+      "fitness": 1.163269050862058,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 45.337153673172,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.172715302880345,
+    "state": 0.44182640144017243,
+    "time": 0.14453125,
+    "depth": 0.5863576514401725,
+    "depth_raw": 1.0,
+    "recall_acc": 0.34830729166666663,
+    "track_score": 0.5353455112136782,
+    "compose_acc": 0.14453125,
+    "speedup": 1.6980462887510623,
+    "fitness_std": 0.0133590177178555,
+    "state_std": 0.017728052314967557,
+    "time_std": 0.011048543456039806,
+    "depth_std": 0.00667950885892775,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.01749352713872968,
+    "track_score_std": 0.017962577491205473,
+    "compose_acc_std": 0.011048543456039806,
+    "speedup_std": 0.0030886232301330727
+  },
+  "params": 209216,
+  "compute": 69.33333333333333
+}
