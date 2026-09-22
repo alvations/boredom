@@ -1,0 +1,103 @@
+{
+  "config": {
+    "name": "r12_deep_exits",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "diag",
+      "diag",
+      "diag",
+      "diag"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [
+      2,
+      3
+    ],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "depth",
+    "rationale": "early-exit loss only on layers 2,3: keep the speedup while sparing layer 1 the auxiliary pressure that may hurt final quality"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3567708333333333,
+      "track_nll": 1.3656786680221558,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5432527723715743,
+      "compose_acc": 0.11588541666666667,
+      "alpha": [
+        0.7426612377166748,
+        0.9721309542655945,
+        0.9904177188873291,
+        1.0
+      ],
+      "speedup": 1.3487173275405089,
+      "exit_layer": 2,
+      "gamma": 5,
+      "state": 0.4500118028524538,
+      "time": 0.11588541666666667,
+      "depth_raw": 0.8974346550810177,
+      "depth": 0.5078557760104488,
+      "fitness": 1.0737529955295693,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 2508.705977678299,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.34765625,
+      "track_nll": 1.365897665421168,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5374818800910388,
+      "compose_acc": 0.1640625,
+      "alpha": [
+        0.7305986285209656,
+        0.9748317003250122,
+        0.9900492429733276,
+        1.0
+      ],
+      "speedup": 1.3583863146987025,
+      "exit_layer": 2,
+      "gamma": 6,
+      "state": 0.4425690650455194,
+      "time": 0.1640625,
+      "depth_raw": 0.916772629397405,
+      "depth": 0.5561432149622437,
+      "fitness": 1.162774780007763,
+      "params": 209216,
+      "compute": 69.33333333333333,
+      "train_seconds": 614.2445213794708,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.1182638877686661,
+    "state": 0.4462904339489866,
+    "time": 0.13997395833333334,
+    "depth": 0.5319994954863463,
+    "depth_raw": 0.9071036422392114,
+    "recall_acc": 0.35221354166666663,
+    "track_score": 0.5403673262313066,
+    "compose_acc": 0.13997395833333334,
+    "speedup": 1.3535518211196056,
+    "fitness_std": 0.06294790747785815,
+    "state_std": 0.005262810373876796,
+    "time_std": 0.0340663423227894,
+    "depth_std": 0.03414437552894559,
+    "depth_raw_std": 0.01367401277352874,
+    "recall_acc_std": 0.006444983682689873,
+    "track_score_std": 0.00408063706506376,
+    "compose_acc_std": 0.0340663423227894,
+    "speedup_std": 0.00683700638676437
+  },
+  "params": 209216,
+  "compute": 69.33333333333333
+}

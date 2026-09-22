@@ -1,0 +1,3 @@
+r11_all_dense [state]: r08 lost TRACK when a mixing layer became attention; test dense everywhere -- pure Thm 5.6 shape, no attention
+  blocks=['dense', 'dense', 'dense', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=225600 compute=69
+  F=1.136±0.049  state=0.456 time=0.113 depth=0.568  (recall 0.35 track 0.56 compose 0.11 S 1.697)
