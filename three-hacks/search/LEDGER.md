@@ -14,3 +14,9 @@ Accept iff `F(cand) − F(inc) > τ` on 2 seeds. Budgets: params ≤ 1.25×, com
 contributes almost nothing to F until the model can learn it; the benchmark stays fixed
 (no mid-search changes), so time-axis credit has to be *earned* by an architecture that
 makes COMPOSE learnable within budget. Learnability diagnostic: `rounds/_diag_compose.log`.
+
+**Diagnostic result.** COMPOSE-only training, full 1500-step budget, naive model: exact-match
+0.125 → 0.234 → 0.266 at steps 500/1000/1500, per-token 0.82. Learnable, slowly. The naive
+architecture's single-task ceiling at this budget is ~0.27; in the three-task mix it gets a
+third of the steps and reaches 0.13. The time axis is live and hard, not dead — credit on it
+must come from an architecture that composes better than diagonal blocks. Benchmark unchanged.
