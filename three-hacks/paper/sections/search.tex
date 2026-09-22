@@ -1,0 +1,112 @@
+\section{Iterating the architecture: a theory-guided search}
+\label{sec:search}
+
+The three axes are not a taxonomy but a design space, and the results above
+are predictions about which moves in it should pay. We tested that by running
+a small architecture search in which every claim of
+Sections~\ref{sec:depth}--\ref{sec:state} is a switch next to its naive
+alternative, under a protocol fixed before the first candidate was scored.
+
+\subsection{Architecture, benchmark, protocol}
+
+\paragraph{Architecture.} A four-block residual model of width $64$ in which
+each block's sequence mixer is one of \texttt{diag} (input-controlled diagonal
+gating, the action of gated linear attention), \texttt{dense} (a static
+dense transition with a per-token multiplicative gate, the shape of
+Theorem~\ref{thm:hmm}), or \texttt{attn} (causal softmax attention). The
+\emph{time} axis adds $r$ latent loops over thought slots that either
+overwrite or append (Corollary~\ref{cor:crossover}) with optional codebook
+projection every $k$ loops (Proposition~\ref{prop:kone}); the \emph{depth}
+axis adds an early-exit auxiliary loss $\lambda$ on the shared head
+(Section~\ref{sec:exp-eetrain}).
+
+\paragraph{Benchmark.} One procedurally generated task per axis on a shared
+vocabulary: \textsc{recall} (six key/value pairs, then a query; state
+capacity), \textsc{track} (cyclic-HMM next-symbol prediction scored as the
+fraction of headroom captured against the forward algorithm; state mixing),
+and \textsc{compose} (eight generators of $S_5$ to their product; serial
+time). Depth is the corrected-cost early-exit speedup $S$ of
+Proposition~\ref{prop:cost} at an imposed head fraction $u = 0.26$, measured
+on all three tasks. Fitness is $F = \text{state} + \text{time} + \text{depth}
+\in [0,3]$ with depth credit gated by task quality, since an untrained model
+has every layer near-uniform and would otherwise score full depth credit for
+predicting nothing.
+
+\paragraph{Protocol.} Parameters $\le 1.25\times$ and compute $\le 3.5\times$
+a baseline reference, enforced before any compute is spent. Two seeds per
+candidate, three for the baseline, held-out evaluation on fresh samples. The
+noise band $\tau$ is the baseline's across-seed standard deviation of $F$,
+fixed before any candidate runs; a candidate replaces the incumbent iff it
+beats it by more than $\tau$. Every candidate is tagged with the axis it
+mutates and the result that motivates it. The first three candidates are the
+three theory-predicted moves, each applied to the naive baseline in
+isolation, so each axis's contribution is measured before any are combined.
+
+\subsection{Search v1: thirteen rounds, one accepted move, and why}
+
+On the naive baseline ($F = 0.813 \pm 0.097$, so $\tau = 0.097$) the
+early-exit loss was accepted at $+0.302$, moving $S$ from $1.12$ to $1.67$
+while leaving every task score unchanged --- the effect of
+Section~\ref{sec:exp-eetrain} reproduced on a different model and different
+tasks. Dense mixing moved \textsc{track} in the predicted direction
+($0.51 \to 0.57$) but landed at $+0.084$, under the band. Two appended loops
+were \emph{worse} by $0.136$ at three times the compute.
+
+Ten further rounds --- stacking, more $\lambda$, two attention layers, deeper
+exits only, all-dense, two learning rates, a matched append-versus-overwrite
+pair, projection every step --- produced nothing above the band. The
+diagnosis, reached by diagnostics rather than assumed, was that two axes were
+pinned by the benchmark: \textsc{recall} sat at $0.33$--$0.36$ for
+\emph{every} layout including four attention layers trained on it alone with
+four times the budget, and \textsc{compose} reached $0.27$ at best. A
+localiser sweeping the number of pairs found the pipeline sound (a one-pair
+copy trains to $1.000$) and the failure beginning at two pairs, the first
+point a key match is required: two-hop retrieval does not form in this model
+at this budget. Architecture cannot register on tasks no architecture can
+learn. Two results from v1 stand on their own: the matched loop test went
+\emph{against} Corollary~\ref{cor:crossover} (overwrite beat append by
+$0.104$ at $r=1$, both worse than no loop), and projecting every step on a
+noise-free loop changed nothing ($0.996$ against $0.998$), as
+Proposition~\ref{prop:kone} says it should not.
+
+\subsection{Search v2: the same rule on a learnable encoding}
+
+v2 changed the \textsc{recall} encoding to one token per pair --- a one-hop
+content match with identical semantics --- and nothing else, after a gate
+showed all-attention now climbs ($0.27 \to 0.42 \to 0.66$ and rising) where
+diagonal state does not ($0.375$). The v2 baseline scored $0.934 \pm 0.015$,
+so $\tau_2 = 0.015$. Table~\ref{tab:search} gives the pre-committed rounds.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrl}
+\toprule
+round & mutation & $F$ & $\Delta$ & verdict \\
+\midrule
+14 & naive baseline (3 seeds) & $0.934 \pm 0.015$ & --- & incumbent \\
+15 & depth: $\lambda = 0.5$ & $1.236 \pm 0.006$ & $+0.302$ & accept \\
+16 & state: dense, dense, attn, dense & $1.073 \pm 0.116$ & $+0.139$ & accept \\
+17 & time: append, $r = 1$ & $0.699 \pm 0.079$ & $-0.235$ & worse \\
+18 & time: overwrite, $r = 1$ & $0.728 \pm 0.055$ & $-0.206$ & worse \\
+19 & depth $+$ state & $1.513 \pm 0.224$ & $+0.579$ & accept \\
+\bottomrule
+\end{tabular}
+\caption{Search v2 against the naive baseline, $\tau_2 = 0.015$. Depth and
+state both register and combine additively; both loop variants are worse
+than no loop, and overwrite again beats append (by $0.029$, above the band).}
+\label{tab:search}
+\end{table}
+
+Three things follow. The depth move is the most robust prediction in this
+paper: $+0.302$ in both searches, on both encodings, with the task scores
+untouched. Dense mixing pays exactly where Theorem~\ref{thm:noembed} and
+Section~\ref{sec:exp-bite} say it should --- \textsc{track} rose from $0.55$
+to $0.63$ alone and to $0.68$ combined --- while \textsc{recall} did not move
+with or without an attention layer in the three-task mix, so the recall
+layer may be dead weight; round~20 tests that. And latent loops have hurt at
+every budget and encoding tried, with the append-versus-overwrite comparison
+going against Corollary~\ref{cor:crossover} twice. The corollary is a
+capacity statement about long horizons; at $r = 1$ on a model that cannot yet
+use one loop, capacity is not what binds, and we record the loss rather than
+explain it away. The round-19 incumbent carries a wide spread across its two
+seeds; the final claim is made on seeds the search never saw.
