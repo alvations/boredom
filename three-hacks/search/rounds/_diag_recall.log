@@ -1,0 +1,6 @@
+lr=0.002 step 500: recall acc 0.203
+lr=0.002 step 1000: recall acc 0.328
+lr=0.002 step 1500: recall acc 0.359
+lr=0.005 step 500: recall acc 0.203
+lr=0.005 step 1000: recall acc 0.312
+lr=0.005 step 1500: recall acc 0.312

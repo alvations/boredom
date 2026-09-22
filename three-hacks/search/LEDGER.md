@@ -33,3 +33,12 @@ are bottlenecked by trainability at this budget, not by architecture, so archite
 mutations cannot register on them. Batch 3 targets that: two *recipe* moves within budget
 (tagged separately from the three axes), and axis moves that follow from batch 2.
 Diagnostic: RECALL-only, all-attention — `rounds/_diag_recall.log`.
+
+**Diagnostic result (RECALL).** All-attention model, RECALL only, full 1500-step budget:
+0.203 → 0.328 → **0.359**; at lr 5e-3, 0.312. Four attention layers on a six-pair lookup
+should approach 1.0. The task needs two-hop retrieval, which forms after a phase transition,
+and 1500 × 32 examples is short of it. **Two axes are pinned by the training budget, not by
+architecture.** That is a harness design flaw, found in batch 3. Gating test for a revised
+budget (3000 steps × bs 64): `rounds/_diag_recall_v2budget.log`. If it clears, the search
+restarts as v2 with the same tasks and a larger fixed budget, fully disclosed; if not, it is
+a bug hunt.
