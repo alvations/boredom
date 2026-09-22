@@ -1,0 +1,3 @@
+r04_state_on_depth [state]: stack the near-tau state move on the accepted depth move: does dense mixing add to early-exit training?
+  blocks=['dense', 'dense', 'attn', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=225408 compute=69
+  F=1.119±0.081  state=0.442 time=0.117 depth=0.559  (recall 0.33 track 0.55 compose 0.12 S 1.660)

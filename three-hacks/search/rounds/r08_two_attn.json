@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r08_two_attn",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "attn",
+      "dense",
+      "attn",
+      "dense"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "state",
+    "rationale": "Thm 5.12: recall needs exact-recall layers and RECALL is weak (0.36); two attention layers"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.359375,
+      "track_nll": 1.3704904317855835,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.4164559680106084,
+      "compose_acc": 0.08333333333333333,
+      "alpha": [
+        0.9505702257156372,
+        0.9727048277854919,
+        0.9858283400535583,
+        1.0
+      ],
+      "speedup": 1.6466993535376104,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.3879154840053042,
+      "time": 0.08333333333333333,
+      "depth_raw": 1.0,
+      "depth": 0.4712488173386375,
+      "fitness": 0.942497634677275,
+      "params": 225216,
+      "compute": 69.33333333333333,
+      "train_seconds": 42.01249814033508,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.34765625,
+      "track_nll": 1.370258629322052,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.4225642919150752,
+      "compose_acc": 0.09114583333333333,
+      "alpha": [
+        0.9475039839744568,
+        0.9764968156814575,
+        0.9890886545181274,
+        1.0
+      ],
+      "speedup": 1.632729150318199,
+      "exit_layer": 1,
+      "gamma": 5,
+      "state": 0.3851102709575376,
+      "time": 0.09114583333333333,
+      "depth_raw": 1.0,
+      "depth": 0.4762561042908709,
+      "fitness": 0.9525122085817418,
+      "params": 225216,
+      "compute": 69.33333333333333,
+      "train_seconds": 41.61598610877991,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 0.9475049216295084,
+    "state": 0.3865128774814209,
+    "time": 0.08723958333333333,
+    "depth": 0.4737524608147542,
+    "depth_raw": 1.0,
+    "recall_acc": 0.353515625,
+    "track_score": 0.4195101299628418,
+    "compose_acc": 0.08723958333333333,
+    "speedup": 1.6397142519279049,
+    "fitness_std": 0.0070813731185423185,
+    "state_std": 0.0019835851687487432,
+    "time_std": 0.005524271728019903,
+    "depth_std": 0.0035406865592711593,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.008286407592029853,
+    "track_score_std": 0.0043192372545323675,
+    "compose_acc_std": 0.005524271728019903,
+    "speedup_std": 0.009878425430999893
+  },
+  "params": 225216,
+  "compute": 69.33333333333333
+}

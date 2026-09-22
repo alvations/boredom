@@ -1,0 +1,4 @@
+r08_two_attn [state]: Thm 5.12: recall needs exact-recall layers and RECALL is weak (0.36); two attention layers
+  blocks=['attn', 'dense', 'attn', 'dense'] r=0 mode=overwrite proj_k=0 ee_lambda=0.5  params=225216 compute=69
+  F=0.948±0.007  state=0.387 time=0.087 depth=0.474  (recall 0.35 track 0.42 compose 0.09 S 1.640)
+R8DONE

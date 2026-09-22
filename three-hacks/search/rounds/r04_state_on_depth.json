@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r04_state_on_depth",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "dense",
+      "dense",
+      "attn",
+      "dense"
+    ],
+    "r": 0,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "state",
+    "rationale": "stack the near-tau state move on the accepted depth move: does dense mixing add to early-exit training?"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3255208333333333,
+      "track_nll": 1.3655830125013988,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5457734311045848,
+      "compose_acc": 0.09505208333333333,
+      "alpha": [
+        0.9561001062393188,
+        0.9627658128738403,
+        0.9883185029029846,
+        1.0
+      ],
+      "speedup": 1.6737520381073137,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.435647132218959,
+      "time": 0.09505208333333333,
+      "depth_raw": 1.0,
+      "depth": 0.5306992155522924,
+      "fitness": 1.0613984311045848,
+      "params": 225408,
+      "compute": 69.33333333333333,
+      "train_seconds": 1129.3634991645813,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.3346354166666667,
+      "track_nll": 1.3649481336275737,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5625033904947695,
+      "compose_acc": 0.13932291666666666,
+      "alpha": [
+        0.9505649209022522,
+        0.9652687907218933,
+        0.9864174127578735,
+        1.0
+      ],
+      "speedup": 1.646673644178463,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.44856940358071806,
+      "time": 0.13932291666666666,
+      "depth_raw": 1.0,
+      "depth": 0.5878923202473847,
+      "fitness": 1.1757846404947694,
+      "params": 225408,
+      "compute": 69.33333333333333,
+      "train_seconds": 52.580684185028076,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 1.118591535799677,
+    "state": 0.44210826789983854,
+    "time": 0.1171875,
+    "depth": 0.5592957678998385,
+    "depth_raw": 1.0,
+    "recall_acc": 0.330078125,
+    "track_score": 0.5541384107996772,
+    "compose_acc": 0.1171875,
+    "speedup": 1.6602128411428883,
+    "fitness_std": 0.08088326433402389,
+    "state_std": 0.009137425708232548,
+    "time_std": 0.03130420645877944,
+    "depth_std": 0.040441632167011944,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.006444983682689913,
+    "track_score_std": 0.011829867733775182,
+    "compose_acc_std": 0.03130420645877944,
+    "speedup_std": 0.019147315970730886
+  },
+  "params": 225408,
+  "compute": 69.33333333333333
+}

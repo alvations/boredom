@@ -1,0 +1,100 @@
+{
+  "config": {
+    "name": "r06_overwrite_r1",
+    "d": 64,
+    "L": 4,
+    "heads": 2,
+    "blocks": [
+      "diag",
+      "diag",
+      "diag",
+      "diag"
+    ],
+    "r": 1,
+    "time_mode": "overwrite",
+    "n_slots": 4,
+    "proj_k": 0,
+    "proj_bits": 16,
+    "ee_lambda": 0.5,
+    "ee_layers": [],
+    "steps": 1500,
+    "lr": 0.002,
+    "bs": 32,
+    "axis": "time",
+    "rationale": "Cor 4.5 matched test, half B: one overwriting loop on the incumbent, same compute as r05"
+  },
+  "seeds": [
+    {
+      "recall_acc": 0.3138020833333333,
+      "track_nll": 1.3664710521697998,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5223723254736619,
+      "compose_acc": 0.09635416666666667,
+      "alpha": [
+        0.9628372192382812,
+        0.9796574711799622,
+        0.9895343780517578,
+        1.0
+      ],
+      "speedup": 1.7074011819086812,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.41808720440349756,
+      "time": 0.09635416666666667,
+      "depth_raw": 1.0,
+      "depth": 0.5144413710701642,
+      "fitness": 1.0288827421403284,
+      "params": 209216,
+      "compute": 128.0,
+      "train_seconds": 72.72302985191345,
+      "seed": 0
+    },
+    {
+      "recall_acc": 0.296875,
+      "track_nll": 1.3670687476793926,
+      "track_opt": 1.3483457409817239,
+      "track_score": 0.5066222005042526,
+      "compose_acc": 0.08203125,
+      "alpha": [
+        0.9655352830886841,
+        0.9823513031005859,
+        0.990200936794281,
+        1.0
+      ],
+      "speedup": 1.7210929150705423,
+      "exit_layer": 1,
+      "gamma": 6,
+      "state": 0.4017486002521263,
+      "time": 0.08203125,
+      "depth_raw": 1.0,
+      "depth": 0.4837798502521263,
+      "fitness": 0.9675597005042526,
+      "params": 209216,
+      "compute": 128.0,
+      "train_seconds": 71.29890179634094,
+      "seed": 1
+    }
+  ],
+  "mean": {
+    "fitness": 0.9982212213222905,
+    "state": 0.4099179023278119,
+    "time": 0.08919270833333334,
+    "depth": 0.49911061066114526,
+    "depth_raw": 1.0,
+    "recall_acc": 0.30533854166666663,
+    "track_score": 0.5144972629889573,
+    "compose_acc": 0.08919270833333334,
+    "speedup": 1.7142470484896117,
+    "fitness_std": 0.04336193858385421,
+    "state_std": 0.01155313779055731,
+    "time_std": 0.010127831501369824,
+    "depth_std": 0.021680969291927105,
+    "depth_raw_std": 0.0,
+    "recall_acc_std": 0.011969255410709775,
+    "track_score_std": 0.011137020170404884,
+    "compose_acc_std": 0.010127831501369824,
+    "speedup_std": 0.009681517364948726
+  },
+  "params": 209216,
+  "compute": 128.0
+}

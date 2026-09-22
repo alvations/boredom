@@ -20,3 +20,16 @@ makes COMPOSE learnable within budget. Learnability diagnostic: `rounds/_diag_co
 architecture's single-task ceiling at this budget is ~0.27; in the three-task mix it gets a
 third of the steps and reaches 0.13. The time axis is live and hard, not dead — credit on it
 must come from an architecture that composes better than diagonal blocks. Benchmark unchanged.
+| 4 | r04_state_on_depth | state | dense,dense,attn,dense + λ=0.5 | 1.119±0.081 | +0.003 | no change. track 0.52→0.55, recall 0.36→0.33 |
+| 5 | r05_append_r1 | time | append r=1 + λ=0.5 | 0.894±0.022 | −0.222 | worse. recall 0.24, compose 0.07 |
+| 6 | r06_overwrite_r1 | time | overwrite r=1 + λ=0.5 | 0.998±0.043 | −0.117 | worse — but **beats append by 0.104 (> τ)**: matched test goes against Cor 4.5 here |
+| 7 | r07_lambda1 | depth | λ=1.0 | 1.104±0.023 | −0.011 | no change. S 1.67→1.70, recall dips; plateau |
+| 8 | r08_two_attn | state | attn,dense,attn,dense + λ=0.5 | 0.948±0.007 | −0.168 | worse. track 0.52→0.42 (a mixing layer lost); recall **unchanged at 0.35** |
+
+**Note after batch 2.** Incumbent unchanged (r03, F=1.115). Only the depth axis has ever
+moved. RECALL is 0.33–0.36 for *every* layout including two attention layers, which should
+solve associative recall outright; COMPOSE is 0.07–0.15 everywhere. The state and time tasks
+are bottlenecked by trainability at this budget, not by architecture, so architecture
+mutations cannot register on them. Batch 3 targets that: two *recipe* moves within budget
+(tagged separately from the three axes), and axis moves that follow from batch 2.
+Diagnostic: RECALL-only, all-attention — `rounds/_diag_recall.log`.
