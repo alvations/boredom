@@ -1,0 +1,4 @@
+r13_overwrite_proj [time]: Prop 4.15: with a rate-sufficient codebook project every step; matched against r06 (same loop, no projection)
+  blocks=['diag', 'diag', 'diag', 'diag'] r=1 mode=overwrite proj_k=1 ee_lambda=0.5  params=211344 compute=128
+  F=0.996±0.019  state=0.419 time=0.079 depth=0.498  (recall 0.32 track 0.52 compose 0.08 S 1.707)
+R13DONE

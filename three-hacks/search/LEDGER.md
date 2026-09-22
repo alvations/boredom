@@ -64,6 +64,17 @@ Under the interleaved encoding both sat at ~0.35 whatever the architecture; now 
 *separate* and the curve is not flat. It does not saturate at this budget, so v2 measures
 state and time in a partial-learning regime where architecture appears as slope, not as
 ceiling. Stated as such.
+| 9 | r09_lr4e3 | recipe | lr 4e-3 | 1.173±0.013 | +0.057 | no change. recall 0.35 regardless |
+| 10 | r10_lr1e3 | recipe | lr 1e-3 | 0.994±0.001 | −0.122 | worse |
+| 11 | r11_all_dense | state | dense×4 + λ=0.5 | 1.136±0.049 | +0.021 | no change. track 0.56, best on the mixing task |
+| 12 | r12_deep_exits | depth | λ=0.5 on layers 2,3 only | 1.118±0.063 | +0.003 | no change. S 1.70→1.35, no quality gain |
+| 13 | r13_overwrite_proj | time | overwrite r=1 + proj every step | 0.996±0.019 | −0.119 | worse; **0.996 vs 0.998 unprojected** — projection neither helps nor hurts, as Prop 4.15 says for a noise-free chain |
+
+**v1 closed: 13 rounds, one accepted move (depth, round 3), incumbent r03 F=1.115.** Every
+state and time mutation was a wash or worse because RECALL was unlearnable under the
+interleaved encoding and COMPOSE sat near floor; the two recipe moves confirmed that lr is
+not the bottleneck. The one theory prediction that reproduced cleanly is the depth axis. The
+matched time test went against Cor 4.5 (overwrite > append by 0.104 at r=1).
 
 ## Search v2 — one-hop RECALL, 2400 steps, same COMPOSE/TRACK, same rule
 
