@@ -73,6 +73,10 @@ class Cfg:
     proj_bits: int = 16
     slots_only: bool = False           # insert thought slots but run NO extra loop:
                                        # isolates the layout change from the looping
+    skip_slots: bool = False           # recurrent blocks HOLD their state across placeholder
+                                       # positions. Round 32: four placeholder tokens alone
+                                       # erased the carried state (-0.537), so every loop
+                                       # test before this was a layout test.
     # depth axis
     ee_lambda: float = 0.0
     ee_layers: tuple = ()              # empty = 1..L-1
@@ -111,12 +115,13 @@ class DiagRec(nn.Module):
         super().__init__()
         self.a = nn.Linear(d, d); self.c = nn.Linear(d, d); self.o = nn.Linear(d, d)
 
-    def forward(self, x):
+    def forward(self, x, hold=None):
         B, T, d = x.shape
         a = torch.sigmoid(self.a(x)); c = self.c(x)
         s = torch.zeros(B, d, device=x.device); out = []
         for t in range(T):
-            s = rms(a[:, t] * s + c[:, t])
+            s_new = rms(a[:, t] * s + c[:, t])
+            s = torch.where(hold[:, t, None], s, s_new) if hold is not None else s_new
             out.append(s)
         return self.o(torch.stack(out, 1))
 
@@ -130,13 +135,14 @@ class DenseRec(nn.Module):
         self.A = nn.Parameter(torch.eye(d) + 0.02 * torch.randn(d, d))
         self.b = nn.Linear(d, d); self.c = nn.Linear(d, d); self.o = nn.Linear(d, d)
 
-    def forward(self, x):
+    def forward(self, x, hold=None):
         B, T, d = x.shape
         A = self.A / (torch.linalg.matrix_norm(self.A, ord=2) + 1e-6)
         b = torch.sigmoid(self.b(x)); c = self.c(x)
         s = torch.zeros(B, d, device=x.device); out = []
         for t in range(T):
-            s = rms((s @ A.T) * b[:, t] + c[:, t])
+            s_new = rms((s @ A.T) * b[:, t] + c[:, t])
+            s = torch.where(hold[:, t, None], s, s_new) if hold is not None else s_new
             out.append(s)
         return self.o(torch.stack(out, 1))
 
@@ -146,7 +152,7 @@ class Attn(nn.Module):
         super().__init__()
         self.mha = nn.MultiheadAttention(d, heads, batch_first=True, bias=False)
 
-    def forward(self, x):
+    def forward(self, x, hold=None):
         T = x.shape[1]
         mask = torch.triu(torch.ones(T, T, dtype=torch.bool, device=x.device), 1)
         return self.mha(x, x, x, attn_mask=mask, need_weights=False)[0]
@@ -160,8 +166,8 @@ class Block(nn.Module):
                     "attn": Attn(d, heads)}[kind]
         self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
 
-    def forward(self, x):
-        x = x + self.mix(self.n1(x))
+    def forward(self, x, hold=None):
+        x = x + self.mix(self.n1(x), hold)
         return x + self.mlp(self.n2(x))
 
 
@@ -187,13 +193,13 @@ class DTS(nn.Module):
         p = torch.sigmoid(self.to_bits(s))
         return self.from_bits((p > 0.5).float() + p - p.detach())
 
-    def stack(self, e):
+    def stack(self, e, hold=None):
         """Run the blocks over an embedded sequence; return all layer outputs."""
         T = e.shape[1]
         x = e + self.pos(torch.arange(T, device=e.device))
         hs = [x]
         for b in self.blocks:
-            x = b(x); hs.append(x)
+            x = b(x, hold); hs.append(x)
         self.compute += len(self.blocks) * T
         return hs
 
@@ -205,23 +211,34 @@ class DTS(nn.Module):
         e = self.emb(tokens)
         B, N = tokens.shape
         slot_idx = (tokens[0] == THOUGHT).nonzero().flatten()
-        hs = self.stack(e)
+        # hold = positions whose INPUT is the placeholder; carried thoughts in
+        # later passes are real content and are not held
+        ids = tokens.clone()
+        hold = (ids == THOUGHT) if cfg.skip_slots else None
+        hs = self.stack(e, hold)
         if cfg.r == 0 or len(slot_idx) == 0:
             return hs
         # positions of the (first) slot span and everything after it
         s0, s1 = int(slot_idx[0]), int(slot_idx[-1]) + 1
         head_e, tail_e = e[:, :s0], e[:, s1:]
+        head_id, tail_id = ids[:, :s0], ids[:, s1:]
         slot_e = e[:, s0:s1]
+        slot_id = ids[:, s0:s1]
+        CARRIED = -1                                            # not a placeholder
         for i in range(1, cfg.r + 1):
             carried = self.carry(self.norm(hs[-1][:, s0:s0 + (s1 - s0)]))
             if cfg.proj_k and i % cfg.proj_k == 0:
                 carried = self.project(carried)
+            carried_id = torch.full((B, carried.shape[1]), CARRIED, device=e.device, dtype=ids.dtype)
             if cfg.time_mode == "append":
                 slot_e = torch.cat([slot_e, carried], 1)       # accumulate
+                slot_id = torch.cat([slot_id, carried_id], 1)
             else:
                 slot_e = carried                                # overwrite
+                slot_id = carried_id
             e2 = torch.cat([head_e, slot_e, tail_e], 1)
-            hs = self.stack(e2)
+            id2 = torch.cat([head_id, slot_id, tail_id], 1)
+            hs = self.stack(e2, (id2 == THOUGHT) if cfg.skip_slots else None)
             # for append, the NEW slots are the last n written; carry from them
             s0 = head_e.shape[1] + slot_e.shape[1] - cfg.n_slots
             s1 = head_e.shape[1] + slot_e.shape[1]

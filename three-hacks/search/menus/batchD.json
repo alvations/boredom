@@ -1,0 +1,7 @@
+[
+ {"name":"v2_r36_skip_control","axis":"time","slots_only":true,"skip_slots":true,"n_slots":4,"rationale":"CONTROL for the control: slots inserted, no loops, recurrent state HELD across them. If this matches the incumbent, the skip removes the layout penalty and the loop tests below are fair"},
+ {"name":"v2_r37_skip_overwrite","axis":"time","r":1,"time_mode":"overwrite","n_slots":4,"skip_slots":true,"rationale":"first FAIR loop test: one overwrite loop with placeholder positions held"},
+ {"name":"v2_r38_skip_append","axis":"time","r":1,"time_mode":"append","n_slots":4,"skip_slots":true,"rationale":"Cor 4.5 matched pair, finally fair: one append loop with placeholder positions held, same compute class as r37"},
+ {"name":"v2_r39_lambda075_attn_last","axis":"state+depth","ee_lambda":0.75,"blocks":["dense","dense","dense","attn"],"rationale":"B's two near-misses combined: lambda 0.75 (+0.165) and attention last (+0.056)"},
+ {"name":"v2_r40_lambda075_attn_last_h4","axis":"state+depth","ee_lambda":0.75,"blocks":["dense","dense","dense","attn"],"heads":4,"rationale":"the same with 4 heads (r30, +0.064): all three near-misses together"}
+]
