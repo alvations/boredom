@@ -1,0 +1,8 @@
+[13:20:51] incumbent v2_r21_lr4e3: F=1.865±0.200 on seeds [0, 1, 2], held-out 1.806; tau=0.200
+[13:20:51] round 21 v2_r21_lr4e3: already exists, skipping
+[13:20:51] round 22 v2_r22_heads4: already exists, skipping
+[13:20:51] round 23 v2_r23_interleave: already exists, skipping
+[13:20:51] round 24 v2_r24_overwrite_2slots: already exists, skipping
+[13:20:56] round 25 v2_r25_lambda025 [depth]: lighter auxiliary loss: does final-layer quality (COMPOSE, RECALL) recover while S stays above 1.5?
+[13:24:35]   F=1.779±0.452  d=-0.085 vs tau=0.200  (recall 0.27 track 0.82 compose 0.36 S 1.670)
+[13:24:35] menu done. incumbent v2_r21_lr4e3 F=1.865 held-out 1.806
