@@ -156,4 +156,24 @@ Search seeds F 1.865±0.200; held-out 1.806 (v2 naive: 0.873).
 | time | 24, 28, **32**, **36**, 37, 38 | **Round 32 showed every prior loop loss was layout**: placeholder tokens alone erase recurrent state (−0.537). `skip_slots` fixes that (round 36 matches the incumbent). Rounds 37–38 are the first fair loop tests: both lose by ~0.48; **append ties overwrite (+0.018)**, so Cor 4.5's direction is not contradicted once the confound is gone. |
 | combos | 39, 40 | +0.127 and +0.187 — every near-miss stacked lands just under τ=0.20. |
 
+### Held-out v3 — seeds 5, 6, 7, re-trained from scratch (`rounds/_holdout_v3.log`)
+
+| config | F (held-out) | state | time | depth | RECALL | TRACK | COMPOSE | S |
+|---|---|---|---|---|---|---|---|---|
+| v2 naive (diag×4, no EE) | 0.873±0.032 | 0.450 | 0.216 | 0.207 | 0.343 | 0.557 | 0.216 | 1.056 |
+| round 19 (v2 incumbent) | 1.560±0.056 | 0.482 | 0.298 | 0.780 | 0.320 | 0.644 | 0.298 | 1.658 |
+| **round 21, lr 4e-3 (v3 incumbent)** | **1.806±0.215** | 0.568 | 0.335 | 0.903 | 0.277 | 0.859 | 0.335 | 1.694 |
+| round 36, skip_slots control | 1.718±0.094 | 0.568 | 0.290 | 0.859 | 0.286 | 0.851 | 0.290 | 1.702 |
+| round 39, λ=0.75 + attn-last | **1.969±0.074** | 0.594 | 0.395 | 0.981 | 0.311 | 0.877 | 0.395 | 1.746 |
+| round 34, attn at both ends | 1.631±0.113 | 0.697 | 0.119 | 0.816 | **0.976** | 0.418 | 0.119 | 1.559 |
+| round 41, attn first | 1.657±0.028 | 0.707 | 0.122 | 0.829 | **0.978** | 0.435 | 0.122 | 1.549 |
+
+Per-seed F, incumbent: 1.988 / 1.568 / 1.863. Round 39: 2.000 / 1.885 / 2.024.
+
+Three things the fresh seeds say:
+
+1. **The promotion holds.** lr 4e-3 is +0.246 over round 19 on seeds the search never saw, and the skip_slots control sits inside the incumbent's spread (−0.088 against ±0.215), so holding recurrent state at placeholder positions costs nothing — the round-36 claim replicates.
+2. **Round 39 beats the incumbent on every fresh seed** (+0.163 mean; its worst seed, 1.885, is above the incumbent's mean). The search rejected it at +0.127 against τ=0.20. The rule did its job — on the search seeds the margin was inside the incumbent's noise — but the incumbent's noise was the widest of any configuration here (±0.215 vs ±0.074), and a τ pinned to the incumbent's spread is a τ the incumbent's own seed-1 outlier sets. This is not a promotion: these seeds are confirmation data, and selecting on them is the thing the protocol forbids. It is a pre-registered round 42: both configs on seeds 8, 9, 10, the v3 rule as written, promote iff Δ > min(0.20, incumbent std on those seeds).
+3. **The recall mechanism replicates.** Attention on raw tokens gives RECALL 0.976–0.978 on fresh seeds (every other layout: 0.28–0.34) and COMPOSE 0.12 (every other layout: 0.22–0.40). The first-layer conflict is a property of the architecture, not of seeds 0–2.
+
 **What the second twenty established that the first did not.** (1) The biggest lever was a recipe the v1 protocol had seen and could not accept under a wide τ; three seeds and a tighter rule let it through, and held-out confirmed it. (2) The time axis was never measured in rounds 1–31: a control exposed the confound, a one-line architectural fix removed it, and the fair test then lost cleanly — a different and more useful fact than five confounded losses. (3) The state axis's two tasks want different first layers; that is a structural limit of a four-block model, not a search failure.

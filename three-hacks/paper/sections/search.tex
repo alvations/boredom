@@ -176,3 +176,39 @@ identity; composition needs dense mixing on those same raw tokens. The first
 layer is contested, and a four-block model has one. This is a structural
 limit of the architecture, not a failure of the search, and it says what a
 fifth block or a parallel first layer would be for.
+
+Table~\ref{tab:holdout3} re-trains the second search's candidates on seeds
+5--7. The promotion holds ($+0.246$ over round 19); the placeholder control
+sits inside the incumbent's spread, so holding recurrent state at filler
+positions costs nothing; and the recall mechanism replicates, $0.976$--$0.978$
+with attention on raw tokens against $0.28$--$0.34$ for every other layout.
+One row is a surprise. Round 39 ($\lambda = 0.75$, attention last), rejected
+at $+0.127$ under $\tau = 0.20$, beats the incumbent on every fresh seed
+($+0.163$; its worst seed, $1.885$, is above the incumbent's mean). The
+incumbent's own spread, $\pm 0.215$ and the widest in the table, set the
+$\tau$ that excluded it. We do not promote it on this evidence --- these
+seeds are confirmation data, and selecting on them is what the protocol
+forbids --- but it is the pre-registered first move of any continuation:
+both configurations on seeds 8--10 under the same rule.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+config & $F$ (held-out) & depth & \textsc{recall} & \textsc{track} & \textsc{compose} \\
+\midrule
+naive baseline & $0.873 \pm 0.032$ & 0.207 & 0.343 & 0.557 & 0.216 \\
+round 19 (first incumbent) & $1.560 \pm 0.056$ & 0.780 & 0.320 & 0.644 & 0.298 \\
+round 21, lr $4\times10^{-3}$ (incumbent) & $\mathbf{1.806 \pm 0.215}$ & 0.903 & 0.277 & 0.859 & 0.335 \\
+round 36, placeholder control & $1.718 \pm 0.094$ & 0.859 & 0.286 & 0.851 & 0.290 \\
+round 39, $\lambda = 0.75$ $+$ attn last & $\mathbf{1.969 \pm 0.074}$ & 0.981 & 0.311 & 0.877 & 0.395 \\
+round 34, attn at both ends & $1.631 \pm 0.113$ & 0.816 & $\mathbf{0.976}$ & 0.418 & 0.119 \\
+round 41, attn first & $1.657 \pm 0.028$ & 0.829 & $\mathbf{0.978}$ & 0.435 & 0.122 \\
+\bottomrule
+\end{tabular}
+\caption{Held-out evaluation of rounds 21--41 on seeds 5--7, never seen by
+either search. Attention on raw tokens triples \textsc{recall} and halves
+\textsc{compose}; no four-block layout gets both. Round 39 is the one
+configuration the rule rejected that fresh seeds prefer.}
+\label{tab:holdout3}
+\end{table}

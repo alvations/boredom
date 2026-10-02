@@ -73,6 +73,27 @@ exactly this reason.
 **Recipe mapped.** lr 6e-3 turns over (−0.062); 3e-3 is worse than 4e-3 (−0.024). λ=0.5 is
 near-optimal; λ=0.75 helps COMPOSE (0.49) but not enough overall.
 
+**On seeds the search never saw** (5, 6, 7; `rounds/_holdout_v3.log`):
+
+| config | F (held-out) | depth | RECALL | TRACK | COMPOSE |
+|---|---|---|---|---|---|
+| v2 naive | 0.873±0.032 | 0.207 | 0.343 | 0.557 | 0.216 |
+| round 19 (v2 incumbent) | 1.560±0.056 | 0.780 | 0.320 | 0.644 | 0.298 |
+| **round 21, lr 4e-3 (v3 incumbent)** | **1.806±0.215** | 0.903 | 0.277 | 0.859 | 0.335 |
+| round 36, skip_slots control | 1.718±0.094 | 0.859 | 0.286 | 0.851 | 0.290 |
+| round 39, λ=0.75 + attn-last | **1.969±0.074** | 0.981 | 0.311 | 0.877 | 0.395 |
+| round 34, attn at both ends | 1.631±0.113 | 0.816 | **0.976** | 0.418 | 0.119 |
+| round 41, attn first | 1.657±0.028 | 0.829 | **0.978** | 0.435 | 0.122 |
+
+The promotion holds (+0.246 over round 19), the skip_slots control sits inside the incumbent's
+spread, and the recall mechanism replicates (0.976–0.978 with attention on raw tokens, against
+0.28–0.34 for every other layout). The one surprise is round 39: rejected by the rule at
++0.127 under τ=0.20, it beats the incumbent on every fresh seed (+0.163; worst seed 1.885,
+above the incumbent's mean 1.806). The incumbent's own spread (±0.215, the widest in the
+table) set the τ that excluded it. It is **not promoted here** — these seeds are confirmation
+data and selecting on them is what the protocol forbids — but it is the first move of any
+continuation, pre-registered as round 42: both configs on seeds 8–10, same rule.
+
 ### What the second twenty taught about the first
 
 The v1 protocol's wide τ (0.097, from one outlier baseline seed) hid the single largest

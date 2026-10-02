@@ -254,7 +254,7 @@ seed noise, budgets enforced first, final claim on seeds the search never saw.
 |---|---|---|
 | depth | early-exit loss (exp5) | **held, twice, at the identical +0.302** |
 | state | dense mixing (Thm 5.8) | **held on the mixing task**, +0.201 held-out |
-| time | append > overwrite (Cor 4.5) | **did not hold**: loops worse, overwrite beat append twice |
+| time | append > overwrite (Cor 4.5) | **loops lose, but the direction survives**: the "overwrite beat append" results were layout artefacts; the one fair test has append tie overwrite (+0.018) |
 
 After 40 rounds the configuration is dense, dense, attn, dense + early-exit loss + **lr 4e-3**,
 no loops: **held-out 1.806 vs 0.873 naive** — more than double. Rounds 21–40 ran unattended
@@ -263,7 +263,10 @@ learning rate — the largest lever in the project, which the first protocol had
 not accept. Round 32 showed every earlier loop loss was a *layout* artefact (placeholder tokens
 erase recurrent state); with that fixed, the first fair loop test still lost, and append tied
 overwrite. Round 34 found why RECALL never moved: it needs attention on raw tokens, which
-composition also needs — **the first layer is contested**.
+composition also needs — **the first layer is contested** (RECALL 0.98 vs 0.28 on fresh seeds,
+COMPOSE 0.12 vs 0.34). One rejected candidate, round 39 (λ=0.75, attn last), beats the incumbent
+on every held-out seed (1.969±0.074 vs 1.806±0.215); it is not promoted on confirmation data and
+is the pre-registered round 42 on seeds 8–10.
 
 The search also found its own harness limit: for 13 rounds two axes couldn't register because
 RECALL was unlearnable under its first encoding by *any* architecture — diagnosed by a
