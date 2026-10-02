@@ -71,6 +71,8 @@ class Cfg:
     n_slots: int = 4
     proj_k: int = 0                    # project carried slots every k loops; 0 = never
     proj_bits: int = 16
+    slots_only: bool = False           # insert thought slots but run NO extra loop:
+                                       # isolates the layout change from the looping
     # depth axis
     ee_lambda: float = 0.0
     ee_layers: tuple = ()              # empty = 1..L-1
@@ -271,7 +273,7 @@ class Tasks:
                     seq.append(PAIR0 + k * NV + v)
                 else:
                     seq += [K0 + k, V0 + v]
-            seq += [Q, K0 + keys[j]] + [THOUGHT] * (self.cfg.n_slots if self.cfg.r else 0) + [ANS]
+            seq += [Q, K0 + keys[j]] + [THOUGHT] * (self.cfg.n_slots if (self.cfg.r or self.cfg.slots_only) else 0) + [ANS]
             toks.append(seq); tgt.append(V0 + vals[j])
         return torch.tensor(toks), torch.tensor(tgt)
 
@@ -307,7 +309,7 @@ class Tasks:
                 g = self.rng.randrange(NG)
                 cur[g], cur[g + 1] = cur[g + 1], cur[g]
                 gs.append(G0 + g)
-            slots = [THOUGHT] * (self.cfg.n_slots if self.cfg.r else 0)
+            slots = [THOUGHT] * (self.cfg.n_slots if (self.cfg.r or self.cfg.slots_only) else 0)
             toks.append(gs + slots + [SEP] + [P0 + p for p in cur[:-1]])
             tgt.append([P0 + p for p in cur])
         return torch.tensor(toks), torch.tensor(tgt)

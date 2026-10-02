@@ -1,0 +1,7 @@
+[
+ {"name":"v2_r31_lr3e3","axis":"recipe","lr":0.003,"rationale":"RECALL preferred lr 2e-3 (0.36) and TRACK/COMPOSE prefer 4e-3; 3e-3 as the compromise the mix may want"},
+ {"name":"v2_r32_slots_only","axis":"time","slots_only":true,"n_slots":4,"rationale":"CONTROL: thought slots inserted, zero extra loops. Five loop configs lost and every one also changed the sequence layout; if this loses too, the loss was layout, not looping"},
+ {"name":"v2_r33_exits_12","axis":"depth","ee_layers":[1,2],"rationale":"auxiliary loss on the two shallowest exits only, where the speedup comes from; spares layer 3"},
+ {"name":"v2_r34_attn_ends","axis":"state","blocks":["attn","dense","dense","attn"],"rationale":"two recall layers at the ends with mixing between; r23 interleaved lost, r27 attn-last was the best state move of B"},
+ {"name":"v2_r35_attn_last_lr3e3","axis":"state+recipe","blocks":["dense","dense","dense","attn"],"lr":0.003,"rationale":"combination: B's best state move (attn last, +0.056) with the compromise lr"}
+]
