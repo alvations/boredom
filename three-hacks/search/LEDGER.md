@@ -124,3 +124,19 @@ layer was not dead weight, and the held-out step caught the noise as designed.
 
 **Rule refinement before batch B.** τ is capped at 0.20. The round-21 incumbent spreads ±0.368 on its three seeds; uncapped, nothing could be accepted. Held-out confirmation on seeds 5–7 remains the gate for every promotion. Round 25 was killed by a container restart mid-run and is re-run first against the current incumbent.
 
+| 25 | v2_r25_lambda025 | depth | lighter auxiliary loss: does final-layer quality (COMPOSE, R | 1.779±0.452 | -0.085 | no change |
+| 26 | v2_r26_lr6e3 | recipe | lr 4e-3 was the largest move of the search (+0.246 held-out) | 1.803±0.499 | -0.062 | no change |
+| 27 | v2_r27_attn_last | state | RECALL fell to 0.29 under the new lr, below naive; put the r | 1.921±0.304 | +0.056 | no change |
+| 28 | v2_r28_loop_at_lr4e3 | time | every loop lost under lr 2e-3, the recipe that was also star | 1.394±0.042 | -0.471 | worse |
+| 29 | v2_r29_lambda075 | depth | r25 tests lighter aux loss; this is the other direction on t | 2.029±0.319 | +0.165 | no change |
+| 30 | v2_r30_attn_last_heads4 | state | combination: recall layer last with 4 heads, the two recall- | 1.928±0.330 | +0.064 | no change |
+| 31 | v2_r31_lr3e3 | recipe | RECALL preferred lr 2e-3 (0.36) and TRACK/COMPOSE prefer 4e- | 1.840±0.311 | -0.024 | no change |
+| 32 | v2_r32_slots_only | time | CONTROL: thought slots inserted, zero extra loops. Five loop | 1.328±0.035 | -0.537 | worse |
+| 33 | v2_r33_exits_12 | depth | auxiliary loss on the two shallowest exits only, where the s | 1.927±0.416 | +0.062 | no change |
+| 34 | v2_r34_attn_ends | state | two recall layers at the ends with mixing between; r23 inter | 1.664±0.486 | -0.201 | worse |
+| 35 | v2_r35_attn_last_lr3e3 | state+recipe | combination: B's best state move (attn last, +0.056) with th | 1.768±0.260 | -0.096 | no change |
+| 36 | v2_r36_skip_control | time | CONTROL for the control: slots inserted, no loops, recurrent | 1.950±0.195 | +0.086 | no change |
+| 37 | v2_r37_skip_overwrite | time | first FAIR loop test: one overwrite loop with placeholder po | 1.369±0.078 | -0.496 | worse |
+| 38 | v2_r38_skip_append | time | Cor 4.5 matched pair, finally fair: one append loop with pla | 1.387±0.146 | -0.477 | worse |
+| 39 | v2_r39_lambda075_attn_last | state+depth | B's two near-misses combined: lambda 0.75 (+0.165) and atten | 1.992±0.227 | +0.127 | no change |
+| 40 | v2_r40_lambda075_attn_last_h4 | state+depth | the same with 4 heads (r30, +0.064): all three near-misses t | 2.051±0.189 | +0.187 | no change |

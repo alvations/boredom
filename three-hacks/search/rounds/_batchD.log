@@ -1,0 +1,12 @@
+[14:02:06] incumbent v2_r21_lr4e3: F=1.865±0.200 on seeds [0, 1, 2], held-out 1.806; tau=0.200
+[14:02:06] round 36 v2_r36_skip_control [time]: CONTROL for the control: slots inserted, no loops, recurrent state HELD across them. If this matches the incumbent, the skip removes the layout penalty and the loop tests below are fair
+[14:06:18]   F=1.950±0.195  d=+0.086 vs tau=0.200  (recall 0.30 track 0.89 compose 0.40 S 1.725)
+[14:06:18] round 37 v2_r37_skip_overwrite [time]: first FAIR loop test: one overwrite loop with placeholder positions held
+[14:12:37]   F=1.369±0.078  d=-0.496 vs tau=0.200  (recall 0.24 track 0.87 compose 0.13 S 1.720)
+[14:12:37] round 38 v2_r38_skip_append [time]: Cor 4.5 matched pair, finally fair: one append loop with placeholder positions held, same compute class as r37
+[14:19:24]   F=1.387±0.146  d=-0.477 vs tau=0.200  (recall 0.24 track 0.87 compose 0.14 S 1.723)
+[14:19:24] round 39 v2_r39_lambda075_attn_last [state+depth]: B's two near-misses combined: lambda 0.75 (+0.165) and attention last (+0.056)
+[14:23:00]   F=1.992±0.227  d=+0.127 vs tau=0.200  (recall 0.28 track 0.91 compose 0.44 S 1.758)
+[14:23:00] round 40 v2_r40_lambda075_attn_last_h4 [state+depth]: the same with 4 heads (r30, +0.064): all three near-misses together
+[14:26:30]   F=2.051±0.189  d=+0.187 vs tau=0.200  (recall 0.31 track 0.92 compose 0.47 S 1.748)
+[14:26:30] menu done. incumbent v2_r21_lr4e3 F=1.865 held-out 1.806
