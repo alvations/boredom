@@ -1,0 +1,7 @@
+[
+ {"name":"v2_r21_lr4e3","axis":"recipe","lr":0.004,"rationale":"RECIPE on the incumbent: lr 4e-3 was +0.057 in v1 under a wide tau; retest under 3 seeds"},
+ {"name":"v2_r22_heads4","axis":"state","heads":4,"rationale":"Thm 5.12: RECALL is the weak task and the one attention layer has 2 heads; give it 4"},
+ {"name":"v2_r23_interleave","axis":"state","blocks":["dense","attn","dense","attn"],"rationale":"two recall layers interleaved with two mixing layers; r08 lost TRACK with attn first, so mixing stays first"},
+ {"name":"v2_r24_overwrite_2slots","axis":"time","r":1,"time_mode":"overwrite","n_slots":2,"rationale":"loops have lost at 4 slots; the cheapest possible loop -- one pass over two slots -- to see whether the cost is the loop or its size"},
+ {"name":"v2_r25_lambda025","axis":"depth","ee_lambda":0.25,"rationale":"lighter auxiliary loss: does final-layer quality (COMPOSE, RECALL) recover while S stays above 1.5?"}
+]
