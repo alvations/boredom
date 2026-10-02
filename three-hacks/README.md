@@ -266,7 +266,7 @@ overwrite. Round 34 found why RECALL never moved: it needs attention on raw toke
 composition also needs — **the first layer is contested** (RECALL 0.98 vs 0.28 on fresh seeds,
 COMPOSE 0.12 vs 0.34). One rejected candidate, round 39 (λ=0.75, attn last), beats the incumbent
 on every held-out seed (1.969±0.074 vs 1.806±0.215); it is not promoted on confirmation data and
-is the pre-registered round 42 on seeds 8–10.
+was tested as round 42 on seeds 8–10: +0.107 against τ=0.20, **not promoted**, incumbent stands.
 
 The search also found its own harness limit: for 13 rounds two axes couldn't register because
 RECALL was unlearnable under its first encoding by *any* architecture — diagnosed by a

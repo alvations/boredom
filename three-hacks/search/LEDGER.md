@@ -176,4 +176,13 @@ Three things the fresh seeds say:
 2. **Round 39 beats the incumbent on every fresh seed** (+0.163 mean; its worst seed, 1.885, is above the incumbent's mean). The search rejected it at +0.127 against τ=0.20. The rule did its job — on the search seeds the margin was inside the incumbent's noise — but the incumbent's noise was the widest of any configuration here (±0.215 vs ±0.074), and a τ pinned to the incumbent's spread is a τ the incumbent's own seed-1 outlier sets. This is not a promotion: these seeds are confirmation data, and selecting on them is the thing the protocol forbids. It is a pre-registered round 42: both configs on seeds 8, 9, 10, the v3 rule as written, promote iff Δ > min(0.20, incumbent std on those seeds).
 3. **The recall mechanism replicates.** Attention on raw tokens gives RECALL 0.976–0.978 on fresh seeds (every other layout: 0.28–0.34) and COMPOSE 0.12 (every other layout: 0.22–0.40). The first-layer conflict is a property of the architecture, not of seeds 0–2.
 
+### Round 42 — the pre-registered test (seeds 8, 9, 10; `rounds/_holdout_r42.log`)
+
+| config | F | per seed |
+|---|---|---|
+| round 21, lr 4e-3 (incumbent) | 1.801±0.271 | 1.908 / 2.002 / 1.493 |
+| round 39, λ=0.75 + attn-last | 1.908±0.382 | 2.208 / 2.037 / 1.477 |
+
+Δ = +0.107 against τ = min(0.20, 0.271) = 0.20. **Not promoted; the incumbent stands.** Round 39 wins two seeds of three by a clear margin and loses the third by 0.016; the seed-10 collapse hits both configurations (1.49 and 1.48) and is what makes both spreads wide. Summed over the six fresh seeds round 39 leads by +0.135, which is real but is not a τ-clearing effect at this seed count, and the rule is the rule. This is the right place to stop: a second search of twenty rounds, one promotion, one candidate that two independent held-out sets rank first by a margin the protocol cannot resolve at three seeds. The experiment that resolves it is more seeds, not more rounds.
+
 **What the second twenty established that the first did not.** (1) The biggest lever was a recipe the v1 protocol had seen and could not accept under a wide τ; three seeds and a tighter rule let it through, and held-out confirmed it. (2) The time axis was never measured in rounds 1–31: a control exposed the confound, a one-line architectural fix removed it, and the fair test then lost cleanly — a different and more useful fact than five confounded losses. (3) The state axis's two tasks want different first layers; that is a structural limit of a four-block model, not a search failure.

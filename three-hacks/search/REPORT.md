@@ -94,6 +94,12 @@ table) set the τ that excluded it. It is **not promoted here** — these seeds 
 data and selecting on them is what the protocol forbids — but it is the first move of any
 continuation, pre-registered as round 42: both configs on seeds 8–10, same rule.
 
+**Round 42, the pre-registered test** (seeds 8–10): incumbent 1.801±0.271, round 39
+1.908±0.382, Δ = +0.107 against τ = 0.20. **Not promoted.** Round 39 wins two seeds by a clear
+margin and ties the third (both collapse to ~1.48 on seed 10). Across six fresh seeds it leads
+by +0.135 — a real lean, not a τ-clearing effect at three seeds per test. The incumbent stands,
+and what would settle it is more seeds, not more rounds.
+
 ### What the second twenty taught about the first
 
 The v1 protocol's wide τ (0.097, from one outlier baseline seed) hid the single largest
