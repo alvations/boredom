@@ -112,3 +112,15 @@ TRACK does — so the attention layer may be dead weight. Round 20 tests exactly
 Held-out F 1.560 vs 0.873 naive: **+79%**. Its ±0.224 search-seed spread tightens to ±0.056
 on fresh seeds. Round 20's +0.012 search-seed edge reverses to −0.100 held-out: the attention
 layer was not dead weight, and the held-out step caught the noise as designed.
+
+## Search v3 — autonomous rounds 21–40 (3 seeds, τ from the incumbent, held-out before promotion)
+
+| round | name | axis | mutation | F | Δ vs inc | verdict |
+|---|---|---|---|---|---|---|
+| 21 | v2_r21_lr4e3 | recipe | RECIPE on the incumbent: lr 4e-3 was +0.057 in v1 under a wi | 1.865±0.368 | +0.367 | **ACCEPT → incumbent** (held-out 1.806 vs 1.560) |
+| 22 | v2_r22_heads4 | state | Thm 5.12: RECALL is the weak task and the one attention laye | 1.865±0.399 | +0.001 | no change |
+| 23 | v2_r23_interleave | state | two recall layers interleaved with two mixing layers; r08 lo | 1.713±0.292 | -0.151 | no change |
+| 24 | v2_r24_overwrite_2slots | time | loops have lost at 4 slots; the cheapest possible loop -- on | 1.412±0.119 | -0.453 | worse |
+
+**Rule refinement before batch B.** τ is capped at 0.20. The round-21 incumbent spreads ±0.368 on its three seeds; uncapped, nothing could be accepted. Held-out confirmation on seeds 5–7 remains the gate for every promotion. Round 25 was killed by a container restart mid-run and is re-run first against the current incumbent.
+

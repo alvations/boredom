@@ -1,0 +1,15 @@
+[03:35:45] v2_r19_depth_state: running missing seed 2
+[03:37:37] v2_r19_depth_state: held-out on seeds [5, 6, 7]
+[03:42:27] incumbent v2_r19_depth_state: F=1.498±0.160 on seeds [0, 1, 2], held-out 1.560; tau=0.160
+[03:42:27] round 21 v2_r21_lr4e3 [recipe]: RECIPE on the incumbent: lr 4e-3 was +0.057 in v1 under a wide tau; retest under 3 seeds
+[03:47:14]   F=1.865±0.368  d=+0.367 vs tau=0.160  (recall 0.29 track 0.88 compose 0.37 S 1.724)
+[03:47:14] v2_r21_lr4e3: held-out on seeds [5, 6, 7]
+[03:52:04]   candidate above tau; held-out 1.806±0.215 vs incumbent held-out 1.560  (d=+0.246)
+[03:52:04]   PROMOTED. new tau=0.368
+[03:52:04] round 22 v2_r22_heads4 [state]: Thm 5.12: RECALL is the weak task and the one attention layer has 2 heads; give it 4
+[03:56:56]   F=1.865±0.399  d=+0.001 vs tau=0.368  (recall 0.29 track 0.85 compose 0.40 S 1.701)
+[03:56:56] round 23 v2_r23_interleave [state]: two recall layers interleaved with two mixing layers; r08 lost TRACK with attn first, so mixing stays first
+[04:00:57]   F=1.713±0.292  d=-0.151 vs tau=0.368  (recall 0.28 track 0.85 compose 0.29 S 1.677)
+[04:00:57] round 24 v2_r24_overwrite_2slots [time]: loops have lost at 4 slots; the cheapest possible loop -- one pass over two slots -- to see whether the cost is the loop or its size
+[04:08:13]   F=1.412±0.119  d=-0.453 vs tau=0.368  (recall 0.25 track 0.88 compose 0.14 S 1.712)
+[04:08:13] round 25 v2_r25_lambda025 [depth]: lighter auxiliary loss: does final-layer quality (COMPOSE, RECALL) recover while S stays above 1.5?

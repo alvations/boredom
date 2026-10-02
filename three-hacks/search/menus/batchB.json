@@ -1,0 +1,7 @@
+[
+ {"name":"v2_r26_lr6e3","axis":"recipe","lr":0.006,"rationale":"lr 4e-3 was the largest move of the search (+0.246 held-out); push once more to find where it turns over"},
+ {"name":"v2_r27_attn_last","axis":"state","blocks":["dense","dense","dense","attn"],"rationale":"RECALL fell to 0.29 under the new lr, below naive; put the recall layer LAST so lookup runs on fully mixed features"},
+ {"name":"v2_r28_loop_at_lr4e3","axis":"time","r":1,"time_mode":"overwrite","n_slots":4,"rationale":"every loop lost under lr 2e-3, the recipe that was also starving dense blocks; fair retest of one overwrite loop under the recipe that fixed them"},
+ {"name":"v2_r29_lambda075","axis":"depth","ee_lambda":0.75,"rationale":"r25 tests lighter aux loss; this is the other direction on the new incumbent"},
+ {"name":"v2_r30_attn_last_heads4","axis":"state","blocks":["dense","dense","dense","attn"],"heads":4,"rationale":"combination: recall layer last with 4 heads, the two recall-targeted moves together"}
+]

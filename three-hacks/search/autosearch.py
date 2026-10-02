@@ -30,6 +30,10 @@ from dts import Cfg, run, DTS, Tasks, n_params, measure_compute
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROUNDS = os.path.join(HERE, "rounds")
 LEDGER = os.path.join(HERE, "LEDGER.md")
+# tau is the incumbent's own spread, CAPPED. Round 21's promoted incumbent
+# spread +-0.368 on three seeds; uncapped, that tau would freeze the search.
+# Held-out confirmation remains the real gate for every promotion.
+TAU_CAP = 0.20
 KEYS = ["fitness", "state", "time", "depth", "depth_raw", "recall_acc",
         "track_score", "compose_acc", "speedup"]
 
@@ -117,7 +121,7 @@ def main():
     inc_name = args.incumbent
     inc = ensure_seeds(inc_name, args.seeds)
     inc_h = ensure_holdout(inc_name, args.holdout_seeds)
-    tau = inc["mean"]["fitness_std"]
+    tau = min(inc["mean"]["fitness_std"], TAU_CAP)
     log(f"incumbent {inc_name}: F={inc['mean']['fitness']:.3f}±{tau:.3f} on seeds {args.seeds}, "
         f"held-out {inc_h['mean']['fitness']:.3f}; tau={tau:.3f}")
 
@@ -163,7 +167,7 @@ def main():
             if hd > 0:
                 verdict = f"**ACCEPT → incumbent** (held-out {h['mean']['fitness']:.3f} vs {inc_h['mean']['fitness']:.3f})"
                 inc_name, inc, inc_h = name, load_round(name), h
-                tau = inc["mean"]["fitness_std"]
+                tau = min(inc["mean"]["fitness_std"], TAU_CAP)
                 log(f"  PROMOTED. new tau={tau:.3f}")
             else:
                 verdict = f"above τ on search seeds but **loses held-out** ({h['mean']['fitness']:.3f} vs {inc_h['mean']['fitness']:.3f}); not promoted"
