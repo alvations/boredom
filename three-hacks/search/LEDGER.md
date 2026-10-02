@@ -140,3 +140,20 @@ layer was not dead weight, and the held-out step caught the noise as designed.
 | 38 | v2_r38_skip_append | time | Cor 4.5 matched pair, finally fair: one append loop with pla | 1.387±0.146 | -0.477 | worse |
 | 39 | v2_r39_lambda075_attn_last | state+depth | B's two near-misses combined: lambda 0.75 (+0.165) and atten | 1.992±0.227 | +0.127 | no change |
 | 40 | v2_r40_lambda075_attn_last_h4 | state+depth | the same with 4 heads (r30, +0.064): all three near-misses t | 2.051±0.189 | +0.187 | no change |
+
+**Follow-up (outside the twenty).** `v2_r41_attn_first_followup` — attention first, three dense after, incumbent recipe: F 1.665±0.392, **RECALL 0.86** (incumbent 0.29), TRACK 0.59 (0.88), COMPOSE 0.11 (0.37). Confirms round 34: content lookup needs attention on raw token embeddings. And exposes the constraint: composition needs dense mixing on raw tokens too. **The first layer is contested**, and four layers have one.
+
+## v3 closed: rounds 21–40, one promotion
+
+**Incumbent after round 40: `v2_r21_lr4e3`** — dense, dense, attn, dense · λ=0.5 · lr 4e-3 · no loops.
+Search seeds F 1.865±0.200; held-out 1.806 (v2 naive: 0.873).
+
+| axis | rounds | what happened |
+|---|---|---|
+| recipe | 21, 26, 31 | **lr 4e-3 promoted (+0.246 held-out)** — the largest move of the whole project. 6e-3 turns over (−0.062); 3e-3 is worse (−0.024). |
+| depth | 25, 29, 33 | λ=0.25 −0.085, λ=0.75 +0.165, exits on 1–2 only +0.062. λ=0.5 was already near-optimal; heavier λ helps COMPOSE oddly but not enough. |
+| state | 22, 23, 27, 30, 34, 35 | Nothing promoted. Attention-last ≈ tie three times. **Round 34 found recall's mechanism** (attention on raw tokens → 0.84) at the cost of mixing layers. |
+| time | 24, 28, **32**, **36**, 37, 38 | **Round 32 showed every prior loop loss was layout**: placeholder tokens alone erase recurrent state (−0.537). `skip_slots` fixes that (round 36 matches the incumbent). Rounds 37–38 are the first fair loop tests: both lose by ~0.48; **append ties overwrite (+0.018)**, so Cor 4.5's direction is not contradicted once the confound is gone. |
+| combos | 39, 40 | +0.127 and +0.187 — every near-miss stacked lands just under τ=0.20. |
+
+**What the second twenty established that the first did not.** (1) The biggest lever was a recipe the v1 protocol had seen and could not accept under a wide τ; three seeds and a tighter rule let it through, and held-out confirmed it. (2) The time axis was never measured in rounds 1–31: a control exposed the confound, a one-line architectural fix removed it, and the fair test then lost cleanly — a different and more useful fact than five confounded losses. (3) The state axis's two tasks want different first layers; that is a structural limit of a four-block model, not a search failure.

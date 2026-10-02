@@ -256,10 +256,14 @@ seed noise, budgets enforced first, final claim on seeds the search never saw.
 | state | dense mixing (Thm 5.8) | **held on the mixing task**, +0.201 held-out |
 | time | append > overwrite (Cor 4.5) | **did not hold**: loops worse, overwrite beat append twice |
 
-Final configuration — dense, dense, attn, dense + early-exit loss, no loops — is **79% above
-the naive baseline on held-out seeds** (1.560 ± 0.056 vs 0.873 ± 0.032). Round 20 tried
-dropping the attention layer, tied on search seeds, and lost on held-out: the fresh-seed step
-caught the noise.
+After 40 rounds the configuration is dense, dense, attn, dense + early-exit loss + **lr 4e-3**,
+no loops: **held-out 1.806 vs 0.873 naive** — more than double. Rounds 21–40 ran unattended
+under a stricter rule (3 seeds, held-out before promotion) and promoted exactly one move, the
+learning rate — the largest lever in the project, which the first protocol had seen and could
+not accept. Round 32 showed every earlier loop loss was a *layout* artefact (placeholder tokens
+erase recurrent state); with that fixed, the first fair loop test still lost, and append tied
+overwrite. Round 34 found why RECALL never moved: it needs attention on raw tokens, which
+composition also needs — **the first layer is contested**.
 
 The search also found its own harness limit: for 13 rounds two axes couldn't register because
 RECALL was unlearnable under its first encoding by *any* architecture — diagnosed by a

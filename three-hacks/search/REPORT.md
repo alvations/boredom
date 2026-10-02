@@ -43,6 +43,44 @@ held-out.
   test the corollary properly: a task whose serial depth exceeds what four layers can do
   without loops, and enough budget for the loops to train — neither available here.
 
+## Rounds 21–40: autonomous, three seeds, held-out before promotion
+
+**Result: one promotion.** Learning rate 4e-3 (round 21) took the incumbent from held-out
+1.560 to **1.806** — the largest single move of the project, and a *recipe*, not an
+architecture. v1 had seen it (+0.057 under τ=0.097) and could not accept it. Nothing else in
+twenty rounds cleared τ; the stacked near-misses of rounds 39–40 landed at +0.127 and +0.187
+against τ=0.20.
+
+**The time axis was never measured before round 36.** Five loop configurations had lost
+across both searches, and the ledger recorded each as evidence against Cor 4.5. Round 32 —
+placeholder slots inserted, *zero* loops — lost by the same −0.537. A dense recurrence with a
+spectrally-normed transition and gates below one contracts over four steps of constant input:
+filler tokens erase its memory. Attention wouldn't care. One line (`skip_slots`: hold recurrent
+state at placeholder positions) removed the penalty exactly — round 36 matches the incumbent —
+and rounds 37–38 became the first fair loop tests. Both lose by ~0.48. Append ties overwrite
+(+0.018), so the corollary's *direction* survives the one honest test it has had; loops as a
+mechanism, on this benchmark at this budget, do not.
+
+**The state axis found its mechanism in a losing round.** RECALL sat at 0.25–0.36 under every
+layout for thirty-four rounds. Round 34 put attention at both ends and RECALL jumped to 0.84
+— the first movement ever — while TRACK and COMPOSE collapsed. The follow-up (attention
+first, three dense after) confirmed it: RECALL 0.86, COMPOSE 0.11. Content lookup needs
+attention on raw token embeddings before the recurrence's normalised mixing erases key
+identity; composition needs dense mixing on those same raw tokens. **The first layer is
+contested**, and four blocks have one. Attention-last never helped (rounds 27, 30, 35) for
+exactly this reason.
+
+**Recipe mapped.** lr 6e-3 turns over (−0.062); 3e-3 is worse than 4e-3 (−0.024). λ=0.5 is
+near-optimal; λ=0.75 helps COMPOSE (0.49) but not enough overall.
+
+### What the second twenty taught about the first
+
+The v1 protocol's wide τ (0.097, from one outlier baseline seed) hid the single largest
+lever. The v1/v2 time-axis "verdicts" were artefacts of a sequence-layout choice. And the
+state-axis null result on RECALL was a first-layer conflict, not an absence of effect. All
+three were found by controls and diagnostics inside the search — the `slots_only` round, the
+attention-ends round, the three-seed rule — not by assumption.
+
 ## What kept it honest
 
 - τ fixed from the baseline before any candidate ran; acceptance by margin, not by max.

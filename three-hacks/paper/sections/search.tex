@@ -139,7 +139,40 @@ The search therefore ends where Sections~\ref{sec:depth} and \ref{sec:state}
 point: a dense-mixing recurrence with one exact-recall layer, trained so its
 intermediate layers are decodable, and no latent loops. Depth contributes
 $+0.319$ and state $+0.201$ on held-out seeds, combining to $+0.687$. The
-time axis, as tested here, contributed nothing and cost something, twice;
-the corollary it rests on is a long-horizon capacity statement that this
-budget could not reach, and we leave it as the one prediction of this paper
-that its own search did not support.
+time axis, as tested in rounds 1--20, contributed nothing and cost
+something; the next twenty rounds show why that verdict was premature.
+
+\subsection{Rounds 21--40: an autonomous continuation}
+
+A second twenty rounds ran unattended under a stricter rule --- three seeds
+per candidate, $\tau$ the incumbent's own spread capped at $0.20$, and a
+held-out re-training on fresh seeds before any promotion. One candidate was
+promoted: learning rate $4\times10^{-3}$ (round 21), taking held-out $F$ from
+$1.560$ to $1.806$. It is the largest single move in this paper and it is a
+recipe, not an architecture; the first search saw it at $+0.057$ under a wide
+$\tau$ and could not accept it. Nothing else cleared the band, including
+every near-miss stacked ($+0.187$ at round 40 against $\tau = 0.20$).
+
+Two findings matter more than the promotion. First, \emph{the time axis had
+never been measured}. Round 32 inserted placeholder slots with zero loops
+and lost by $0.537$ --- the same collapse as every loop configuration before
+it. A dense recurrence with a spectrally normalised transition and gates
+below one contracts over four steps of constant input, so filler tokens erase
+its memory; attention would not care. Holding recurrent state at placeholder
+positions removed the penalty exactly (round 36 matches the incumbent), and
+rounds 37--38 became the first fair loop tests: both lose by about $0.48$, and
+append ties overwrite ($+0.018$). Corollary~\ref{cor:crossover}'s direction
+therefore survives the one honest test it has had; loops as a mechanism, on
+this benchmark at this budget, do not help. The earlier ``overwrite beats
+append'' results were layout artefacts and are withdrawn.
+
+Second, the state axis found its mechanism in a losing round. \textsc{recall}
+sat at $0.25$--$0.36$ under every layout for thirty-four rounds; round 34,
+with attention at both ends, lifted it to $0.84$ while \textsc{track} and
+\textsc{compose} collapsed, and a follow-up with attention first confirmed
+the pattern ($0.86$ against $0.11$). Content lookup needs attention on raw
+token embeddings, before the recurrence's normalised mixing erases key
+identity; composition needs dense mixing on those same raw tokens. The first
+layer is contested, and a four-block model has one. This is a structural
+limit of the architecture, not a failure of the search, and it says what a
+fifth block or a parallel first layer would be for.
