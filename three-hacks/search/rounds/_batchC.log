@@ -1,0 +1,12 @@
+[13:44:24] incumbent v2_r21_lr4e3: F=1.865±0.200 on seeds [0, 1, 2], held-out 1.806; tau=0.200
+[13:44:24] round 31 v2_r31_lr3e3 [recipe]: RECALL preferred lr 2e-3 (0.36) and TRACK/COMPOSE prefer 4e-3; 3e-3 as the compromise the mix may want
+[13:47:39]   F=1.840±0.311  d=-0.024 vs tau=0.200  (recall 0.30 track 0.81 compose 0.37 S 1.707)
+[13:47:40] round 32 v2_r32_slots_only [time]: CONTROL: thought slots inserted, zero extra loops. Five loop configs lost and every one also changed the sequence layout; if this loses too, the loss was layout, not looping
+[13:51:17]   F=1.328±0.035  d=-0.537 vs tau=0.200  (recall 0.23 track 0.88 compose 0.11 S 1.646)
+[13:51:17] round 33 v2_r33_exits_12 [depth]: auxiliary loss on the two shallowest exits only, where the speedup comes from; spares layer 3
+[13:55:08]   F=1.927±0.416  d=+0.062 vs tau=0.200  (recall 0.28 track 0.87 compose 0.44 S 1.748)
+[13:55:08] round 34 v2_r34_attn_ends [state]: two recall layers at the ends with mixing between; r23 interleaved lost, r27 attn-last was the best state move of B
+[13:58:07]   F=1.664±0.486  d=-0.201 vs tau=0.200  (recall 0.84 track 0.62 compose 0.10 S 1.527)
+[13:58:07] round 35 v2_r35_attn_last_lr3e3 [state+recipe]: combination: B's best state move (attn last, +0.056) with the compromise lr
+[14:01:34]   F=1.768±0.260  d=-0.096 vs tau=0.200  (recall 0.31 track 0.83 compose 0.32 S 1.720)
+[14:01:34] menu done. incumbent v2_r21_lr4e3 F=1.865 held-out 1.806
